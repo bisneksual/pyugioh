@@ -27,10 +27,17 @@
     - view: show the name, notes, and contents of the deck
     - select: change the selected deck; all selectable decks will be printed if no args passed
     - add: add cards to the selected deck
+        - --note | -n [str]: list of strings to be added as notes for the file
     - new: create a new deck assigned to the selected collection
     - alias: change name of selected deck
     - assign: assigns a deck to a different collection
-        - -override | -o : 
+    - note: submenu for managing deck notes
+        - (no args): print all notes for the selected deck
+        - edit: edit an existing note
+            - id [int]: index of the note to be added
+        - add: attach a new note to the selected deck
+        - remove: remove a note from the selected deck
+            - id [int]: index of the note to be removed
  * config: submenu for settings and root operations
     - remove: submenu for removing collections or decks
     - default: submenu for setting a collection or deck as default
