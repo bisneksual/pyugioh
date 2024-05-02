@@ -4,19 +4,22 @@ import shlex
 
 class STAK:
     def __init__(self,items: list = [],rev: bool = False):
-        self.stack = items.reverse() if rev else items
+        self.__stack = items.reverse() if rev else items
     
     def pop(self):
-        return self.stack.pop()
+        return self.__stack.pop()
     
     def push(self,item):
-        self.stack.append(item)
+        self.__stack.append(item)
 
     def peek(self):
-        return self.stack[-1]
+        return self.__stack[-1]
     
     def empty(self) -> bool:
-        return (len(self.stack)==0)
+        return len(self.__stack)==0
 
-inputs = input("Enter input: ")
+parser = argparse.ArgumentParser()
+parser.add_argument()
+
+inputs = input("main ->")
 args = shlex.split(inputs)

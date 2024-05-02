@@ -19,3 +19,16 @@
             - 
     - size [int]: number of cards in collection
     - note [list[str]]: notes assigned to collection
+
+## Deck
+
+## Card
+* should have str class that contains a printout of all information related to a card
+* should be initialized from a dict passed in from the database
+* Class Inheritance
+    - Monster Card
+    - Trap Card
+    - Spell Card
+    - Skill Card
+* Attributes
+    - 
