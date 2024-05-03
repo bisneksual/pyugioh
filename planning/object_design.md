@@ -34,3 +34,13 @@
     - passcode [str]: id for the card, not unique
     - name [str]: name for card
     - set_code [str]: set code for the card
+    - meta
+
+## Data Structures
+* Type [enum]
+    - Normal Monster
+    - Effect Monster
+    - Flip Effect Monster
+    - Notmal Tuner Monster
+    - Tuner Monster
+    - 
