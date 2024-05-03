@@ -31,4 +31,6 @@
     - Spell Card
     - Skill Card
 * Attributes
-    - 
+    - passcode [str]: id for the card, not unique
+    - name [str]: name for card
+    - set_code [str]: set code for the card
