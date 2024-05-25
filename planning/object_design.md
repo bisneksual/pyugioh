@@ -2,6 +2,7 @@
 
 ## Cardlist
 * runs off of MySQL database for card storage
+    - use SQLite for 
 * loads from stored json file on start
 * 
 
@@ -21,6 +22,7 @@
     - note [list[str]]: notes assigned to collection
 
 ## Deck
+* loaded from a stored txt file with extension .deck
 * should be a group of Card objects in some structure (list? list of dicts? tuple of dicts?)
 * Attributes
     - cards [array]: list of cards in deck
