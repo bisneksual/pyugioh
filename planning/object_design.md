@@ -21,6 +21,15 @@
     - note [list[str]]: notes assigned to collection
 
 ## Deck
+* should be a group of Card objects in some structure (list? list of dicts? tuple of dicts?)
+* Attributes
+    - cards [array]: list of cards in deck
+    - xtra_cards [array]: list of cards in extra deck
+    - isSpeed [bool]: denotes whether the deck is for a Speed Duel or not
+    - notes [list[str]]: ordered group of comments related to deck
+    - isValid [bool]: denotes whether the deck is a valid deck for play
+        - follows banlists
+        - has correct number of cards in deck and extra deck
 
 ## Card
 * should have str class that contains a printout of all information related to a card
