@@ -1,0 +1,15 @@
+Tables
+- CollectionList
+    - CollID
+    - CardID
+    - CardQty
+    - UserID
+- DeckList
+    - DeckID
+    - UserID
+- CardList
+    - CardID
+- UserList
+    - UserID
+    - UserName
+    - Password
