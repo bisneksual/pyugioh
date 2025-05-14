@@ -1,0 +1,10 @@
+{
+	"table":{
+		"columns":[
+			{
+				"colname":"id",
+				"dtype":"VARCHAR(8)"
+			}
+		]
+	}
+}
