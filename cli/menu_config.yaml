@@ -1,0 +1,45 @@
+---
+card:
+    count:
+        help: print cardlist stats like total count, breakdown by card types, etc.
+        args: ~  
+    version:
+        help: print out the version of the cardlist
+        args: ~
+    update:
+        help: pull the newest version of the cardlist using YGOPRODECK API
+        args: ~
+    view:
+        help: navigate to page view of all cards in the cardlist
+        args: ~
+    search:
+        help: nevigate to page view of filtered cardlist based on passed in search terms
+        args: ~
+coll:
+    view:
+    select:
+    add:
+    search:
+    new:
+    alias:
+    remove:
+deck:
+    view:
+    select:
+    add:
+    new:
+    alias:
+    note:
+fdeck:
+    view:
+    select:
+    add:
+    new:
+    alias:
+    note:
+config:
+    remove:
+    default:
+    merge:
+    rainbow:
+    user:
