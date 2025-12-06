@@ -1,5 +1,7 @@
 import json
 import ast
+from constants import BANLIST_MAP,LINKMARKER_MAP
+#from bitstring import BitArray
 
 class Card:
 
@@ -66,6 +68,19 @@ class YGOCard(Card):
 
         del _data
 
+class __YGOCardList:
+
+    __card_list = []
+
+    def __list_load(self,data:list[dict]):
+        return '[ygo] List loaded!'
+
+
+    def __init__(self,json_data:list[dict]):
+        self.__list = json_data
+
+    
+
 class YGOMonster(YGOCard):
 
     def __init__(self, data_card):
@@ -79,9 +94,9 @@ class YGOMonster(YGOCard):
         self.types = _data.get('typeline')
         self.level = _data.get('level')
         self.attack = _data.get('atk')
-        self.defense = _data.get('def')
+        _def = _data.get('def')
+        self.defense = _def if _def else 0
         self.attribute = _data.get('attribute')
-
         self.isPendulum = ('Pendulum' in _data.get('type'))
 
         if self.isPendulum:
@@ -91,12 +106,52 @@ class YGOMonster(YGOCard):
 
         self.isTuner = ('Tuner' in _data.get('type'))
 
+        _ban = _data.get('banlist_info')
+        if _ban:
+            _ban_map = {key.split('_')[-1]: BANLIST_MAP.index(_ban[key]) for key in _ban}
+            self.banlist = _ban_map
+
         del _data
 
+class YGOExtraDeck(YGOMonster):
+
+    def __init__(self,data_card):
+        super().__init__(data_card)
+
+        _data = self.get_data()
+
+        self.cardType = "x_monster"
+
+        if "Fusion" in _data.get('type'):
+            self.xType = 'Fusion'
+            
+            desc_split = _data.get('desc').split('\r\n')
+            self.fCriteria = desc_split[0]
+            self.desc = "" if len(desc_split) < 2 else "\r\n".join(desc_split[1:])
+        
+        elif "Synchro" in _data.get('type'):
+            self.xType = "Synchro"
+            
+            desc_split = _data.get('desc').split('\r\n')
+            self.sCriteria = desc_split[0]
+            self.desc = "" if len(desc_split) < 2 else "\r\n".join(desc_split[1:])
+
+        elif "Link" in _data.get('type'):
+            self.xType= "Link"
+
+            desc_split = _data.get('desc').split('\r\n')
+            self.lCriteria = desc_split[0]
+            self.desc = "" if len(desc_split) < 2 else "\r\n".join(desc_split[1:])
+            
+            self.lVal = _data.get('linkval')
+
+            _link = _data.get('linkmarkers')
+            self.lMarkers = [x in _link for x in LINKMARKER_MAP]
+
 if __name__=="__main__":
-    fp = open('/home/bisneksual/Documents/pyugioh/db/sample/sample_card_pendulum.json','r')
+    fp = open('/home/bisneksual/Documents/pyugioh/db/sample/link.json','r')
     card = json.load(fp)
     card_data = card['data'][0]
 
-    card = YGOMonster(card_data)
+    card = YGOExtraDeck(card_data)
     print(card.pp())
