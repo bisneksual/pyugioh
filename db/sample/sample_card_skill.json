@@ -1,0 +1,40 @@
+{
+    "data": [
+        {
+            "id": 300302076,
+            "name": "Welcome to the Jungle",
+            "type": "Skill Card",
+            "humanReadableCardType": "Skill - Tania",
+            "frameType": "skill",
+            "desc": "After damage calculation, if you took battle damage from a battle involving an opponent's monster and your Attack Position \"Amazoness\" monster, that opponent's monster loses ATK/DEF equal to the ATK of the \"Amazoness\" monster it battled, until the end of this turn.",
+            "race": "Tania",
+            "ygoprodeck_url": "https://ygoprodeck.com/card/welcome-to-the-jungle-13952",
+            "card_sets": [
+                {
+                    "set_name": "Speed Duel GX: Duelists of Shadows",
+                    "set_code": "SGX3-ENS04",
+                    "set_rarity": "Common",
+                    "set_rarity_code": "(C)",
+                    "set_price": "0"
+                }
+            ],
+            "card_images": [
+                {
+                    "id": 300302076,
+                    "image_url": "https://images.ygoprodeck.com/images/cards/300302076.jpg",
+                    "image_url_small": "https://images.ygoprodeck.com/images/cards_small/300302076.jpg",
+                    "image_url_cropped": "https://images.ygoprodeck.com/images/cards_cropped/300302076.jpg"
+                }
+            ],
+            "card_prices": [
+                {
+                    "cardmarket_price": "0.00",
+                    "tcgplayer_price": "0.09",
+                    "ebay_price": "0.00",
+                    "amazon_price": "0.00",
+                    "coolstuffinc_price": "0.99"
+                }
+            ]
+        }
+    ]
+}

@@ -2,20 +2,26 @@ import psycopg2
 import pandas as pd
 import sqlalchemy as sa
 import json
+from configparser import ConfigParser
 
-DEFAULT_PARAMS = {
-    'db_name':'postgres',
-    'user':'bisneksual',
-    'pass':'bisneksual',
-    'host':'localhost',
-    'port':'5432'
-}
+#DEFAULT_PARAMS = {
+#    'db_name':'postgres',
+#    'user':'bisneksual',
+#    'pass':'bisneksual',
+#    'host':'localhost',
+#    'port':'5432'
+#}
+
+config = ConfigParser()
+config.read("postgres.ini")
+print(config.get('creds','user'))
 
 DEFAULT_DF = pd.DataFrame([(f"string_{i}",i,(i % 2!=0)) for i in range(1,6)],columns=["Test String","Test Integer","Test Boolean"])
 
 BANLIST_MAP = ('Forbidden','Limited','Semi-Limited','Unlimited')
 
 class PostgresDB:
+    __connection = None
 
     def __init__(self,dbname,uname,passw,hostname,portnum):
         try:
@@ -106,7 +112,8 @@ class PostgresDB:
         self.__run_query(f"DROP TABLE IF EXISTS {table_name};")
 
     def __del__(self):
-        self.__connection.close()
+        if self.__connection:
+            self.__connection.close()
 
 if __name__=="__main__":
     db = PostgresDB('postgres','bisneksual','bisneksual','localhost','5432')
@@ -147,7 +154,7 @@ if __name__=="__main__":
     db.add_column('banlist','BANLIMIT','SMALLINT')
     db.add_foreign_key('fk_card','cardlist','PASSCODE','banlist','PASSCODE','ON DELETE CASCADE')
 
-    fp = open('/home/bisneksual/Documents/GitHub/pyugioh/db/sample/sample_card_pendulum.json','r')
+    fp = open('/home/bisneksual/Documents/pyugioh/db/sample/sample_card_pendulum.json','r')
     card = json.load(fp)
     card_data = card['data'][0]
 
