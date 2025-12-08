@@ -1,3 +1,3 @@
-from class_pyugioh import Pyugioh
+from db.ygo import Pyugioh
 
 py = Pyugioh()
