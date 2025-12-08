@@ -4,19 +4,26 @@ from constants import BANLIST_MAP,LINKMARKER_MAP
 import re
 
 class Card:
+    #Generic card class meant to represent all cards in library from all games
+    #
+
 
     __data = None
     game = None
 
+    #Constructor class that ingests card data in dictionary form
     def __init__(self,data_card:dict):
-        self.__data = card_data
+        self.__data = data_card
     
+    #returns card data dictionary cast as a dict
     def get_data(self):
         return dict(self.__data)
 
     def __str__(self):
         return str(self.__data)
     
+
+    #Overriden method that returns a printout of important information 
     def __repr__(self):
         vars = self.__dict__
         del vars['_Card__data']
@@ -29,7 +36,7 @@ class Card:
 
 class YGOCard(Card):
     
-    def __init__(self, data_card: dict):
+    def __init__(self, data_card: dict,__secondary_passcode=None):
         super().__init__(data_card)
         self.game = 'ygo'
         self.__images = self.get_data().get('card_images')
@@ -53,16 +60,17 @@ class YGOCard(Card):
         self.passcode_list = _code_list
         self.passcode = _data.get('id')
 
-        _sets = _data.get('card_sets')
-        _sets_dict = {
-            _set.get('set_code'): {
-                'prefix': _set.get('set_code').split('-')[0],
-                'name': _set.get('set_name'),
-                'ratity':  _set.get('set_rarity'),
-                'price': _set.get('set_price')
-            } for _set in _sets
-        }
-        self.sets = _sets_dict
+        if 'card_sets' in _data:
+            _sets = _data.get('card_sets')
+            _sets_dict = {
+                _set.get('set_code'): {
+                    'prefix': _set.get('set_code').split('-')[0],
+                    'name': _set.get('set_name'),
+                    'ratity':  _set.get('set_rarity'),
+                    'price': _set.get('set_price')
+                } for _set in _sets
+            }
+            self.sets = _sets_dict
 
         self.urlTag = _data.get('ygoprodeck_url').split('/')[-1]
 
@@ -72,25 +80,16 @@ class YGOCard(Card):
             _ban_map = {key.split('_')[-1]: BANLIST_MAP.index(_ban[key]) for key in _ban}
             self.banlist = _ban_map
 
+        if __secondary_passcode:
+            self.secondaryPasscode = __secondary_passcode
+
         del _data
 
-class __YGOCardList:
-
-    __card_list = []
-
-    def __list_load(self,data:list[dict]):
-        return '[ygo] List loaded!'
-
-
-    def __init__(self,json_data:list[dict]):
-        self.__list = json_data
-
-    
 
 class YGOMonster(YGOCard):
 
-    def __init__(self, data_card):
-        super().__init__(data_card)
+    def __init__(self, data_card,secondary_code = None):
+        super().__init__(data_card,secondary_code)
 
         _data = self.get_data()
 
@@ -126,8 +125,8 @@ class YGOMonster(YGOCard):
 
 class YGOSpell(YGOCard):
 
-    def __init__(self, data_card):
-        super().__init__(data_card)
+    def __init__(self, data_card,secondary_code = None):
+        super().__init__(data_card,secondary_code)
 
         _data = self.get_data()
 
@@ -138,8 +137,8 @@ class YGOSpell(YGOCard):
 
 class YGOTrap(YGOCard):
 
-    def __init__(self, data_card):
-        super().__init__(data_card)
+    def __init__(self, data_card,secondary_code = None):
+        super().__init__(data_card,secondary_code)
 
         _data = self.get_data()
 
@@ -150,15 +149,15 @@ class YGOTrap(YGOCard):
 
 class YGOToken(YGOCard):
     
-    def __init__(self, data_card):
-        super().__init__(data_card)
+    def __init__(self, data_card,secondary_code = None):
+        super().__init__(data_card,secondary_code)
 
         self.cardType = "token"
 
 class YGOExtraDeck(YGOMonster):
 
-    def __init__(self,data_card):
-        super().__init__(data_card)
+    def __init__(self,data_card,secondary_code = None):
+        super().__init__(data_card,secondary_code)
 
         _data = self.get_data()
 
@@ -199,13 +198,95 @@ class YGOExtraDeck(YGOMonster):
         
         del _data
 
-if __name__=="__main__":
-    fp = open('/home/bisneksual/Documents/pyugioh/db/sample/trap.json','r')
-    card = json.load(fp)
-    card_data = card['data'][0]
+class __YGOCardList:
 
-    card = YGOTrap(card_data)
-    print(card.pp())
+    def __list_load(self,data:list[dict]):
+        self.__card_list = data
+        print('[ygo] List loaded!')
+
+    def __search_passcodes(self,passcode:str|int):
+        if isinstance(passcode,str):
+            if not passcode.isnumeric():
+                print(f'[__search_passcodes] Oops: invalid passcode {passcode} entered.')
+                return None
+        if self.__passcodemap:
+            __boolmap = {key:(self.__passcodemap.get(key) and passcode in self.__passcodemap.get(key)) for key in self.__passcodemap}
+            if not any(__boolmap.values()):
+                print(f'[__search_passcodes] Oops: Passcode {passcode} not found')
+                return None
+            result = next((key for key in __boolmap if __boolmap[key]))
+            return result
+    
+    def __get_card_data(self,passcode:str|int):
+        __passcode = passcode if isinstance(passcode,int) else int(passcode) if passcode.isnumeric() else None
+        if __passcode:
+            _card_data = next((card for card in self.__card_list if card['id']==__passcode))
+            if _card_data:
+                return _card_data
+            print('[__get_card_data] Oops: There was an error trying to find card data')
+            return None
+        #print(f'Oops: Invalid 
+        print(f'[__get_card_data] Oops: Invalid passcode {passcode}')
+        return None
+        
+    def search(self,code:str|int):
+        if isinstance(code,int):
+            return self.__search_passcodes(code)
+        #if isinstance(code,str):
+        #    if code.isnumeric():
+        print(f'[search] Oops: Invalid search term {code}')
+        return None
+
+    def __init__(self,json_data:list[dict]):
+        self.__card_list = json_data
+
+        #print(type(self.__card_list))
+        #_code_list = [x.get('id') for x in _codes if isinstance(x,dict) and 'id' in x]
+        _codes = {
+            str(y.get('id')): [
+                x.get('id') for x in y.get('card_images') if isinstance(x,dict) and 'id' in x
+            ] for y in json_data if isinstance(y,dict) and 'id' in y and 'card_images' in y
+        }
+        self.__passcodemap = _codes
+        #print(self.__passcodemap.get('80181649'))
+
+    def from_passcode(self,code:str|int):
+        primary_code = self.__search_passcodes(code)
+        if primary_code:
+            _code2 = code if primary_code!=str(code) else None
+            card_stuff = self.__get_card_data(primary_code)
+            if card_stuff:
+                card_type = card_stuff.get('type')
+                card =  YGOExtraDeck(card_stuff,_code2) if any((x in card_type for x in ('Fusion','Synchro','Link','XYZ'))) \
+                            else YGOSpell(card_stuff,_code2) if 'Spell' in card_type \
+                            else YGOTrap(card_stuff,_code2) if 'Trap' in card_type \
+                            else YGOToken(card_stuff,_code2) if 'Token' in card_type \
+                            else YGOMonster(card_stuff,_code2) if 'Monster' in card_type \
+                            else None
+                if card:
+                    return card
+                print('[from_passcode] Oops: There was an error trying to create a card')
+                return None
+            print('[from_passcode] Oops: There was an error trying to get card data')
+            return None
+        print('[from_passcode] Oops: There is an error trying to find the primary passcode')
+        return None
+    
+    
+    def num_cards(self):
+        return len(self.__card_list)
+
+if __name__=="__main__":
+    fp = open('/home/bisneksual/Documents/pyugioh/db/sample/all.json','r')
+    result = json.load(fp)
+    card_data = result['data']
+
+    #card = YGOTrap(card_data)
+    #print(card.pp())
+    cl =__YGOCardList(card_data)
+    card = cl.from_passcode(46986418)
+    if card:
+        print(repr(card))
 
     #sample_desc = 'You can Ritual Summon this card with "Mitsurugi Ritual". Monsters your opponent controls lose 800 ATK. You can reveal this card in your hand; Special Summon 1 "Mitsurugi" monster from your Deck, then Tribute 1 monster you control. You can only use this effect of "Ame no Habakiri no Mitsurugi" once per Duel. If this card is Tributed: You can add 1 "Mitsurugi" card from your Deck to your hand, except "Ame no Habakiri no Mitsurugi", then you can Special Summon this card. You can only use this effect of "Ame no Habakiri no Mitsurugi" once per turn.'
     #sample_re = re.findall(r'Ritual Summon(?:ed)? (?:this card )?with .*"(.*?)"(?: Ritual Spell Card)?\.',sample_desc)
