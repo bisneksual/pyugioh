@@ -135,10 +135,17 @@ class YGOTrap(YGOCard):
 
 class YGOToken(YGOCard):
     
-    def __init__(self, data_card,secondary_code = None):
-        super().__init__(data_card,secondary_code)
+    def __init__(self, data_card,**kwargs):
+        super().__init__(data_card,**kwargs)
 
         self.cardType = "token"
+
+class YGOSkill(YGOCard):
+
+    def __init__(self, data_card, **kwargs):
+        super().__init__(data_card, **kwargs)
+
+        self.cardType = 'skill'
 
 class YGOExtraDeck(YGOMonster):
 
@@ -248,6 +255,7 @@ class __YGOCardList:
                         else YGOSpell(card_stuff,**kwargs) if 'Spell' in card_type \
                         else YGOTrap(card_stuff,**kwargs) if 'Trap' in card_type \
                         else YGOToken(card_stuff,**kwargs) if 'Token' in card_type \
+                        else YGOSkill(card_stuff,**kwargs) if 'Skill' in card_type \
                         else YGOMonster(card_stuff,**kwargs) if 'Monster' in card_type \
                         else None
             if card:
@@ -297,22 +305,6 @@ class __YGOCardList:
         primary_code = self.__search_passcodes(code)
         if primary_code:
             return self.__get_card(primary_code,passcode=code)
-            #_code2 = code if primary_code!=str(code) else None
-            #card_stuff = self.__get_card_data(primary_code)
-            #if card_stuff:
-            #    card_type = card_stuff.get('type')
-            #    card =  YGOExtraDeck(card_stuff,_code2) if any((x in card_type for x in ('Fusion','Synchro','Link','XYZ'))) \
-            #                else YGOSpell(card_stuff,_code2) if 'Spell' in card_type \
-            #                else YGOTrap(card_stuff,_code2) if 'Trap' in card_type \
-            #                else YGOToken(card_stuff,_code2) if 'Token' in card_type \
-            #                else YGOMonster(card_stuff,_code2) if 'Monster' in card_type \
-            #                else None
-            #    if card:
-            #        return card
-            #    print('[from_passcode] Oops: There was an error trying to create a card')
-            #    return None
-            #print('[from_passcode] Oops: There was an error trying to get card data')
-            #return None
         print('[from_passcode] Oops: There is an error trying to find the primary passcode')
         return None
     
@@ -333,8 +325,8 @@ if __name__=="__main__":
 
     cl =__YGOCardList(card_data)
 
-    print(cl.search(passcode=90669991))
-    card = cl.from_passcode(90669991)
+    print(cl.search(passcode=300302076))
+    card = cl.from_passcode(300302076)
     print(repr(card))
 
     print(cl.search(set_code="RATE-EN031"))

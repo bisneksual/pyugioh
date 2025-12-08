@@ -3,8 +3,6 @@ import ast
 
 class Card:
     #Generic card class meant to represent all cards in library from all games
-    #
-
 
     __data = None
     game = None
@@ -29,3 +27,4 @@ class Card:
     #Pretty prints the card data using the repr method
     def pp(self):
         return json.dumps(ast.literal_eval(repr(self)),indent=2)
+
