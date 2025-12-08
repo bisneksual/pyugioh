@@ -4,31 +4,63 @@ import re
 from class_pyugioh import Card
 
 class YGOCard(Card):
+    #General Yu-Gi-Oh card class used to declare and manipulate all Yu-Gi-Oh cards
+    #Data will be filled in using information from the YGOPRODECK API 
+    #   (https://ygoprodeck.com/api-guide/)
+    #Cards will have a primary passcode used for data lookup as well as a secondary 
+    #   passcode or set code for deck reference purposes
+    #Cards will have links to images but there is no system put in place for handling 
+    #   API calls for images as laid out in the YGOPRODECK API guide
     
+    #Constructor for YGOCard class where information is parsed at a foundational level
+    #Information assigned here is generalized across almost all cards
     def __init__(self, data_card: dict,**kwargs):
+
+        #Call superclass construtor to store raw data structure
         super().__init__(data_card)
+
+        #Denotes that the card belongs to the Yu-Gi-Oh trading card game
         self.game = 'ygo'
+
+        #Saves the dict of image URLs as a private property
         self.__images = self.get_data().get('card_images')
 
+        #Access the data stored in the superclass for property initialization
+        #It is important that this data is filled from the superclass property 
+        #   instead of the argument passed into the constructor for data integrity 
+        #   purposes.
+
         _data = self.get_data()
+
+        #Clean the description text by getting rid  of single quotes and making the 
+        #   bullet symbols ASCII friendly
         self.desc = _data.get('desc').replace("''","").replace('\u25cf','>')
         self.race = _data.get('race')
-        self.hasArchetype = ('archetype' in _data)
 
+        self.hasArchetype = ('archetype' in _data)
         if self.hasArchetype:
             self.archetype = _data.get('archetype')
+
         _prices = _data.get('card_prices')[0]
 
+        #Cast each value in the dict of card prices as a float before storing as a property
         if _prices:
             for shop in _prices:
                 _prices[shop] = float(_prices[shop])
         self.prices = _prices
 
+        #Build a list of possible passcodes based on the values of elements passed into 
+        #   the images property
+        #This is used to user inputted passcodes to the primary key used in database entries
         _codes = _data.get('card_images')
         _code_list = [x.get('id') for x in _codes if isinstance(x,dict) and 'id' in x]
         self.passcode_list = _code_list
+
         self.passcode = _data.get('id')
 
+        #Create a list of information related to the sets that the card belongs to
+        #This is used as an easier way to lookup and add cards as well as connect 
+        #   cards that come from the same sets
         if 'card_sets' in _data:
             _sets = _data.get('card_sets')
             _sets_dict = {
@@ -43,7 +75,8 @@ class YGOCard(Card):
 
         self.urlTag = _data.get('ygoprodeck_url').split('/')[-1]
 
-
+        #Convert banlist data to an integer that represents the number of cards 
+        #   allowed in a deck based on a certain ruleset
         _ban = _data.get('banlist_info')
         if _ban:
             _ban_map = {key.split('_')[-1]: BANLIST_MAP.index(_ban[key]) for key in _ban}
@@ -55,10 +88,12 @@ class YGOCard(Card):
         if 'set_code' in kwargs:
             self.secondarySetCode = kwargs.get('set_code')
 
+        #Delete the card json data just in case the garbage collector misses it
         del _data
     
     #Overriden method that returns a printout of important card information
-    #Specifically, this will remove the inherited card data dict as well as the urls for card images
+    #Specifically, this will remove the inherited card data dict as well as the urls 
+    #   for card images, the list of possible sets and price data
     def __repr__(self):
         vars = self.__dict__
         for key in ('_Card__data','_YGOCard__images','sets','prices'):
@@ -68,11 +103,13 @@ class YGOCard(Card):
         return repr(vars)
     
     #Pretty prints the card data using the repr method
-    def pp(self):
-        info = repr(self)
-        return 
+    #def pp(self):
+    #    info = repr(self)
+    #    return 
 
 class YGOMonster(YGOCard):
+    #Class meant specifically for Yu-Gi-Oh monster cards. This class is 
+    #   specifically for monsters that belong to the Main Deck
 
     def __init__(self, data_card,**kwargs):
         super().__init__(data_card,**kwargs)
