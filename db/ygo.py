@@ -5,7 +5,7 @@ from class_pyugioh import Card
 
 class YGOCard(Card):
     
-    def __init__(self, data_card: dict,__secondary_passcode=None):
+    def __init__(self, data_card: dict,**kwargs):
         super().__init__(data_card)
         self.game = 'ygo'
         self.__images = self.get_data().get('card_images')
@@ -49,8 +49,11 @@ class YGOCard(Card):
             _ban_map = {key.split('_')[-1]: BANLIST_MAP.index(_ban[key]) for key in _ban}
             self.banlist = _ban_map
 
-        if __secondary_passcode:
-            self.secondaryPasscode = __secondary_passcode
+        if 'passcode' in kwargs:
+            self.secondaryPasscode = kwargs.get('passcode')
+        
+        if 'set_code' in kwargs:
+            self.secondarySetCode = kwargs.get('set_code')
 
         del _data
     
@@ -58,14 +61,21 @@ class YGOCard(Card):
     #Specifically, this will remove the inherited card data dict as well as the urls for card images
     def __repr__(self):
         vars = self.__dict__
-        del vars['_Card__data']
-        del vars['_YGOCard__images']
+        for key in ('_Card__data','_YGOCard__images','sets','prices'):
+            if key in vars:
+                del vars[key]
+
         return repr(vars)
+    
+    #Pretty prints the card data using the repr method
+    def pp(self):
+        info = repr(self)
+        return 
 
 class YGOMonster(YGOCard):
 
-    def __init__(self, data_card,secondary_code = None):
-        super().__init__(data_card,secondary_code)
+    def __init__(self, data_card,**kwargs):
+        super().__init__(data_card,**kwargs)
 
         _data = self.get_data()
 
@@ -101,8 +111,8 @@ class YGOMonster(YGOCard):
 
 class YGOSpell(YGOCard):
 
-    def __init__(self, data_card,secondary_code = None):
-        super().__init__(data_card,secondary_code)
+    def __init__(self, data_card,**kwargs):
+        super().__init__(data_card,**kwargs)
 
         _data = self.get_data()
 
@@ -113,8 +123,8 @@ class YGOSpell(YGOCard):
 
 class YGOTrap(YGOCard):
 
-    def __init__(self, data_card,secondary_code = None):
-        super().__init__(data_card,secondary_code)
+    def __init__(self, data_card,**kwargs):
+        super().__init__(data_card,**kwargs)
 
         _data = self.get_data()
 
@@ -132,8 +142,8 @@ class YGOToken(YGOCard):
 
 class YGOExtraDeck(YGOMonster):
 
-    def __init__(self,data_card,secondary_code = None):
-        super().__init__(data_card,secondary_code)
+    def __init__(self,data_card,**kwargs):
+        super().__init__(data_card,**kwargs)
 
         _data = self.get_data()
 
@@ -178,7 +188,23 @@ class __YGOCardList:
 
     def __list_load(self,data:list[dict]):
         self.__card_list = data
-        print('[ygo] List loaded!')
+        print('[__list_load] List loaded!')
+
+        _codes = {
+            str(y.get('id')): [
+                x.get('id') for x in y.get('card_images') if isinstance(x,dict) and 'id' in x
+            ] for y in data if isinstance(y,dict) and 'id' in y and 'card_images' in y
+        }
+        self.__passcodemap = _codes
+        print('[__list_load] passcode lookup map updated!')
+
+        _codes = {
+            str(y.get('id')): [
+                x.get('set_code') for x in y.get('card_sets') if isinstance(x,dict) and 'set_code' in x
+            ] for y in data if isinstance(y,dict) and 'id' in y and 'card_sets' in y
+        }
+        self.__setcodemap = _codes
+        print('[__list_load] set code lookup map updated!')
 
     def __search_passcodes(self,passcode:str|int):
         if isinstance(passcode,str):
@@ -193,6 +219,14 @@ class __YGOCardList:
             result = next((key for key in __boolmap if __boolmap[key]))
             return result
     
+    def __search_set_codes(self,set_code:str):
+        __boolmap = {key:(self.__setcodemap.get(key) and set_code in self.__setcodemap.get(key)) for key in self.__passcodemap}
+        if not any(__boolmap.values()):
+            print(f'[__search_set_codes] Oops: Passcode {set_code} not found')
+            return None
+        result = next((key for key in __boolmap if __boolmap[key]))
+        return result
+    
     def __get_card_data(self,passcode:str|int):
         __passcode = passcode if isinstance(passcode,int) else int(passcode) if passcode.isnumeric() else None
         if __passcode:
@@ -204,46 +238,90 @@ class __YGOCardList:
         #print(f'Oops: Invalid 
         print(f'[__get_card_data] Oops: Invalid passcode {passcode}')
         return None
-        
-    def search(self,code:str|int):
-        if isinstance(code,int):
-            return self.__search_passcodes(code)
+    
+    def __get_card(self,code:int,**kwargs):
 
-        print(f'[search] Oops: Invalid search term {code}')
+        card_stuff = self.__get_card_data(code)
+        if card_stuff:
+            card_type = card_stuff.get('type')
+            card =  YGOExtraDeck(card_stuff,**kwargs) if any((x in card_type for x in ('Fusion','Synchro','Link','XYZ'))) \
+                        else YGOSpell(card_stuff,**kwargs) if 'Spell' in card_type \
+                        else YGOTrap(card_stuff,**kwargs) if 'Trap' in card_type \
+                        else YGOToken(card_stuff,**kwargs) if 'Token' in card_type \
+                        else YGOMonster(card_stuff,**kwargs) if 'Monster' in card_type \
+                        else None
+            if card:
+                return card
+            print('[from_passcode] Oops: There was an error trying to create a card')
+            return None
+        print('[from_passcode] Oops: There was an error trying to get card data')
         return None
 
     def __init__(self,json_data:list[dict]):
-        self.__card_list = json_data
+        self.__list_load(json_data)
+        #self.__card_list = json_data
 
-        _codes = {
-            str(y.get('id')): [
-                x.get('id') for x in y.get('card_images') if isinstance(x,dict) and 'id' in x
-            ] for y in json_data if isinstance(y,dict) and 'id' in y and 'card_images' in y
-        }
-        self.__passcodemap = _codes
+        #_codes = {
+        #    str(y.get('id')): [
+        #        x.get('id') for x in y.get('card_images') if isinstance(x,dict) and 'id' in x
+        #    ] for y in json_data if isinstance(y,dict) and 'id' in y and 'card_images' in y
+        #}
+        #self.__passcodemap = _codes
+
+        #_codes = {
+        #    str(y.get('id')): [
+        #        x.get('set_code') for x in y.get('card_sets') if isinstance(x,dict) and 'set_code' in x
+        #    ] for y in json_data if isinstance(y,dict) and 'id' in y and 'card_sets' in y
+        #}
+        #self.__setcodemap = _codes
+
+    def search(self,**kwargs):
+        var_names = kwargs.keys()
+        #print(var_names)
+        if 'passcode' in var_names:
+            print('[search] passcode search detected')
+            code = kwargs.get('passcode')
+            if isinstance(code,int):
+                return self.__search_passcodes(code)
+        elif 'set_code' in var_names:
+            print('[search] set code search detected')
+            code = kwargs.get('set_code')
+            if isinstance(code,str):
+                return self.__search_set_codes(code)
+
+        print(f'[search] Oops: Invalid method arguments')
+        return None
+
 
     def from_passcode(self,code:str|int):
         primary_code = self.__search_passcodes(code)
         if primary_code:
-            _code2 = code if primary_code!=str(code) else None
-            card_stuff = self.__get_card_data(primary_code)
-            if card_stuff:
-                card_type = card_stuff.get('type')
-                card =  YGOExtraDeck(card_stuff,_code2) if any((x in card_type for x in ('Fusion','Synchro','Link','XYZ'))) \
-                            else YGOSpell(card_stuff,_code2) if 'Spell' in card_type \
-                            else YGOTrap(card_stuff,_code2) if 'Trap' in card_type \
-                            else YGOToken(card_stuff,_code2) if 'Token' in card_type \
-                            else YGOMonster(card_stuff,_code2) if 'Monster' in card_type \
-                            else None
-                if card:
-                    return card
-                print('[from_passcode] Oops: There was an error trying to create a card')
-                return None
-            print('[from_passcode] Oops: There was an error trying to get card data')
-            return None
+            return self.__get_card(primary_code,passcode=code)
+            #_code2 = code if primary_code!=str(code) else None
+            #card_stuff = self.__get_card_data(primary_code)
+            #if card_stuff:
+            #    card_type = card_stuff.get('type')
+            #    card =  YGOExtraDeck(card_stuff,_code2) if any((x in card_type for x in ('Fusion','Synchro','Link','XYZ'))) \
+            #                else YGOSpell(card_stuff,_code2) if 'Spell' in card_type \
+            #                else YGOTrap(card_stuff,_code2) if 'Trap' in card_type \
+            #                else YGOToken(card_stuff,_code2) if 'Token' in card_type \
+            #                else YGOMonster(card_stuff,_code2) if 'Monster' in card_type \
+            #                else None
+            #    if card:
+            #        return card
+            #    print('[from_passcode] Oops: There was an error trying to create a card')
+            #    return None
+            #print('[from_passcode] Oops: There was an error trying to get card data')
+            #return None
         print('[from_passcode] Oops: There is an error trying to find the primary passcode')
         return None
     
+    def from_set_code(self,code:str):
+        __passcode = self.__search_set_codes(code)
+        if __passcode:
+            return self.__get_card(__passcode,set_code = code)
+        print('[from_set_codepasscode] Oops: There is an error trying to find the primary passcode')
+        return None
     
     def num_cards(self):
         return len(self.__card_list)
@@ -253,9 +331,12 @@ if __name__=="__main__":
     result = json.load(fp)
     card_data = result['data']
 
-    #card = YGOTrap(card_data)
-    #print(card.pp())
     cl =__YGOCardList(card_data)
-    card = cl.from_passcode(46986418)
-    if card:
-        print(repr(card))
+
+    print(cl.search(passcode=90669991))
+    card = cl.from_passcode(90669991)
+    print(repr(card))
+
+    print(cl.search(set_code="RATE-EN031"))
+    card = cl.from_set_code("RATE-EN031")
+    print(repr(card))
