@@ -1,11 +1,12 @@
 import json
-from lib.constants import BANLIST_MAP,LINKMARKER_MAP
+from constants import BANLIST_MAP,LINKMARKER_MAP
 import re
-from lib.class_pyugioh import Card, Deck
+from class_pyugioh import Card, Deck
 import yaml
 from configparser import ConfigParser
 import os
 from pathlib import Path
+import requests
 
 class YGOCard(Card):
     #General Yu-Gi-Oh card class used to declare and manipulate all Yu-Gi-Oh cards
@@ -368,6 +369,7 @@ class YGOCardList:
         print(f'[search] Oops: Invalid method arguments')
         return None
 
+    #TODO add fuzzy search capability for finding cards in cardlist
 
     def from_passcode(self,code:str|int):
         primary_code = self.__search_passcodes(code)
@@ -410,17 +412,59 @@ class PyugiohConfig:
             cparse.read(self.__config_path)
             #print(cparse.sections())
             
-            self.api_path = os.path.join(self.__home_path,cparse.get('global','api_path'))
-            self.deck_path = os.path.join(self.__home_path,cparse.get('global','deck_path'))
+            self.api_path = os.path.join(self.__home_path,cparse.get('ygo','api_path'))
+            self.deck_path = os.path.join(self.__home_path,cparse.get('ygo','deck_path'))
         else:
             print('Oops. Config file not found.')
 
 class YGODeckManager:
-    
-    def __init__(self,path_to_decks:str):
 
+    def __update_decks(self):
+        self.__decks = [p.name for p in Path(self.__deckpath).rglob("*") if p.is_file()]
+
+    def __init__(self,path_to_decks:str):
+        if not os.path.isdir(path_to_decks):
+            os.mkdir(path_to_decks)
+        self.__deckpath = path_to_decks
+        self.__decks = [p.name for p in Path(self.__deckpath).rglob("*") if p.is_file()]
         pass
 
+    def get_decks(self):
+        return self.__decks
+
+    def new_deck(self,deck_name:str,is_fantasy:bool = True, comment: str = ''):
+        path = os.path.join(self.__deckpath,deck_name + ".deck")
+        if os.path.isfile(path):
+            print(f"Oops. File {path} already exists")
+        else:
+            base_deck = {}
+            base_deck['name'] = deck_name
+            base_deck['fantasy'] = is_fantasy
+            base_deck['comments'] = comment
+            base_deck['cards']  =  []
+
+            with open(path,'w') as fp:
+                yaml.safe_dump(dict(deck=base_deck),fp)
+            print(f"Deck {deck_name} created!")
+        
+        self.__update_decks()
+
+    #def get_deck(self,deck_name):
+        
+
+#class DeckManager:
+    
+#    def __init__(self,path_to_decks:dict):
+        
+#        self.ygo = YGODeckManager(os.path.join(path_to_decks,'ygo'))
+
+        #print(decks)
+#        pass
+
+class APIManager:
+
+    def __init__(self):
+        pass
 
 class Pyugioh:
 
@@ -438,13 +482,19 @@ class Pyugioh:
     
     def __init_deckman(self):
         path = self.config.deck_path
-        self.__deckman = YGODeckManager(path)
+        self.deckman = YGODeckManager(path)
+        pass
+
+    def __init_dataman(self):
+        path = self.config.api_path
+        self.dataman = APIManager()
         pass
 
     def __init__(self):
         self.config = PyugiohConfig()
         self.__cardlist_load(self.config.api_path)
         self.__init_deckman()
+        self.__init_dataman()
 
 
 if __name__=="__main__":
@@ -454,13 +504,16 @@ if __name__=="__main__":
 
     pygo = Pyugioh()
     card = pygo.cardlist.from_set_code('SDK-001')
+    print(pygo.deckman.get_decks())
+    pygo.deckman.new_deck('yugi')
+    print(pygo.deckman.get_decks())
     #print(card.pp())
 
     #print(cl.search(set_code="SDK-001"))
     #card = cl.from_set_code("SDK-001")
     #print(card.pp())
 
-    with open('/home/bisneksual/Documents/pyugioh/db/sample/kaiba_decklist.yaml','r') as deck:
-        deck_info = yaml.safe_load(deck)
+    #with open('/home/bisneksual/Documents/pyugioh/example/kaiba_decklist.yaml','r') as deck:
+    #    deck_info = yaml.safe_load(deck)
     
-    print(deck_info)
+    #print(deck_info)

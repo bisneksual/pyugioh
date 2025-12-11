@@ -35,4 +35,5 @@ class Deck:
         self._data = deck_data.get('deck')
         self.name = self._data.get('name')
         self.comment = self._data.get('comments')
-        #self.__list = self._data.get('cards')
+        #if "path_to_deck" in kwargs.keys:
+        #    self.__path = 
