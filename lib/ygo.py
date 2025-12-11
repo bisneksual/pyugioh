@@ -1,7 +1,11 @@
 import json
-from constants import BANLIST_MAP,LINKMARKER_MAP
+from lib.constants import BANLIST_MAP,LINKMARKER_MAP
 import re
-from class_pyugioh import Card
+from lib.class_pyugioh import Card, Deck
+import yaml
+from configparser import ConfigParser
+import os
+from pathlib import Path
 
 class YGOCard(Card):
     #General Yu-Gi-Oh card class used to declare and manipulate all Yu-Gi-Oh cards
@@ -116,26 +120,42 @@ class YGOMonster(YGOCard):
 
         _data = self.get_data()
 
+        #Assign the card type to a property
         self.cardType = 'monster'
+
         self.name = _data.get('name')
         self.frame = _data.get('frameType')
         self.types = _data.get('typeline')
         self.level = _data.get('level')
         self.attack = _data.get('atk')
+        
+        #Handle cases where a monster may not have an defense stat
         _def = _data.get('def')
         self.defense = _def if _def else 0
         self.attribute = _data.get('attribute')
         self.isPendulum = ('Pendulum' in _data.get('type'))
 
+        #Add extra properties that exist solely for Pendulum monsters
+        #These properties will have the prefix 'p'
         if self.isPendulum:
+
             self.pScale = _data.get('scale')
+
+            #Save the pendulum description and the monster description separately, 
+            #   making sure to overwrite the default description for the monster 
+            #   description
             self.pDesc = _data.get('pend_desc')
             self.desc = _data.get('monster_desc').replace("''","")
 
         self.isTuner = ('Tuner' in _data.get('type'))
         
+        #Add extra properties that exist solely for Ritual monsters
+        #These properties will have the prefix 'r'
         self.isRitual = ("Ritual" in _data.get('type'))
         if self.isRitual:
+
+            #Use regex to extract the Ritual card or archetype needed to summon the Ritual monster
+            #TODO test capabilities of regex expression on existing Ritual monster descriptions
             _desc = self.desc
             _findritual = re.findall(r'Ritual Summon(?:ed)? (?:this card )?with .*"(.*?)"(?: Ritual Spell Card)?\.',_desc)
             self.rSummon = _findritual[0] if len(_findritual)>0 else ""
@@ -144,9 +164,12 @@ class YGOMonster(YGOCard):
         self.isUnion = ('Union' in _data.get('type'))
         self.isToon = ('Toon' in _data.get('type'))
 
+        #Delete the card data placeholder in case the garbage collector misses it
         del _data
 
 class YGOSpell(YGOCard):
+    #Card class used specifically for Spell cards
+    #The race property is renamed to mType to reduce confusion
 
     def __init__(self, data_card,**kwargs):
         super().__init__(data_card,**kwargs)
@@ -159,6 +182,8 @@ class YGOSpell(YGOCard):
         del _data
 
 class YGOTrap(YGOCard):
+    #Card class used specifically for Trap cards
+    #The race property is renamed to tType to reduce confusion
 
     def __init__(self, data_card,**kwargs):
         super().__init__(data_card,**kwargs)
@@ -171,13 +196,15 @@ class YGOTrap(YGOCard):
         del _data
 
 class YGOToken(YGOCard):
-    
+    #Card class used specifically for Token cards
+
     def __init__(self, data_card,**kwargs):
         super().__init__(data_card,**kwargs)
 
         self.cardType = "token"
 
 class YGOSkill(YGOCard):
+    #Card class used specifically for Skill cards
 
     def __init__(self, data_card, **kwargs):
         super().__init__(data_card, **kwargs)
@@ -185,6 +212,8 @@ class YGOSkill(YGOCard):
         self.cardType = 'skill'
 
 class YGOExtraDeck(YGOMonster):
+    #Card class used specifically for monsters that belong in the Extra Deck (i.e. Fusion, Synchro, Xyz, and Link)
+    #A separate property for storing the type of Extra Deck monster will be created with the prefix 'x'
 
     def __init__(self,data_card,**kwargs):
         super().__init__(data_card,**kwargs)
@@ -193,6 +222,8 @@ class YGOExtraDeck(YGOMonster):
 
         self.cardType = "x_monster"
 
+        #Add properties that exist only for Fusion monsters
+        #These properties will have the prefix 'f'
         if "Fusion" in _data.get('type'):
             self.xType = 'Fusion'
             
@@ -228,7 +259,7 @@ class YGOExtraDeck(YGOMonster):
         
         del _data
 
-class __YGOCardList:
+class YGOCardList:
 
     def __list_load(self,data:list[dict]):
         self.__card_list = data
@@ -355,17 +386,70 @@ class __YGOCardList:
     def num_cards(self):
         return len(self.__card_list)
 
+class YGODeck(Deck):
+
+    def __init__(self, deck_data, **kwargs):
+        super().__init__(deck_data, **kwargs)
+        self.__cards = self._data.get('cards')
+    
+    def get_cards(self):
+        #card_list = []
+        #for card in self.__cards:
+        pass
+
+class PyugiohConfig:
+
+    def __init__(self):
+        self.__parent_path = Path(__file__).parent
+        self.__config_path = os.path.join(self.__parent_path,'pyugioh.ini')
+
+        if os.path.isfile(self.__config_path):
+            cparse = ConfigParser()
+            cparse.read(self.__config_path)
+            print(cparse.sections())
+            
+            self.api_path = cparse.get('global','api_path')
+            self.deck_path = cparse.get('global','deck_path')
+        else:
+            print('Oops. Config file not found.')
+
+#class YGODeckManager:
+    
+
+class Pyugioh:
+
+    def __cardlist_load(self,path:str):
+        
+        try:
+            with open('/home/bisneksual/Documents/pyugioh/db/sample/all.json','r') as fp:
+                result = json.load(fp)
+                card_data = result.get('data')
+
+                self.cardlist = YGOCardList(card_data) if card_data else None
+        except Exception as e:
+            print(e)
+            self.cardlist = None
+
+    def __init__(self):
+        self.__config = PyugiohConfig()
+        self.__cardlist_load(self.__config.api_path)
+        
+
+
 if __name__=="__main__":
-    fp = open('/home/bisneksual/Documents/pyugioh/db/sample/all.json','r')
-    result = json.load(fp)
-    card_data = result['data']
+    #fp = open('/home/bisneksual/Documents/pyugioh/db/sample/all.json','r')
+    #result = json.load(fp)
+    #card_data = result['data']
 
-    cl =__YGOCardList(card_data)
+    pygo = Pyugioh()
+    card = pygo.cardlist.from_set_code('SDK-001')
+    #print(card.pp())
 
-    print(cl.search(passcode=300302076))
-    card = cl.from_passcode(300302076)
-    print(repr(card))
+    #print(cl.search(set_code="SDK-001"))
+    #card = cl.from_set_code("SDK-001")
+    #print(card.pp())
 
-    print(cl.search(set_code="RATE-EN031"))
-    card = cl.from_set_code("RATE-EN031")
-    print(repr(card))
+    with open('/home/bisneksual/Documents/pyugioh/db/sample/kaiba_decklist.yaml','r') as deck:
+        deck_info = yaml.safe_load(deck)
+    
+    print(deck_info)

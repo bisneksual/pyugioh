@@ -28,3 +28,11 @@ class Card:
     def pp(self):
         return json.dumps(ast.literal_eval(repr(self)),indent=2)
 
+class Deck:
+    _data = None
+
+    def __init__(self,deck_data:dict,**kwargs):
+        self._data = deck_data.get('deck')
+        self.name = self._data.get('name')
+        self.comment = self._data.get('comments')
+        #self.__list = self._data.get('cards')
