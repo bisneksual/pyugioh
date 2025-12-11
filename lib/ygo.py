@@ -400,28 +400,34 @@ class YGODeck(Deck):
 class PyugiohConfig:
 
     def __init__(self):
-        self.__parent_path = Path(__file__).parent
-        self.__config_path = os.path.join(self.__parent_path,'pyugioh.ini')
+        self.__home_path = Path(__file__).parent.parent
+
+        #print(self.__home_path)
+        self.__config_path = os.path.join(self.__home_path,'config/pyugioh.ini')
 
         if os.path.isfile(self.__config_path):
             cparse = ConfigParser()
             cparse.read(self.__config_path)
-            print(cparse.sections())
+            #print(cparse.sections())
             
-            self.api_path = cparse.get('global','api_path')
-            self.deck_path = cparse.get('global','deck_path')
+            self.api_path = os.path.join(self.__home_path,cparse.get('global','api_path'))
+            self.deck_path = os.path.join(self.__home_path,cparse.get('global','deck_path'))
         else:
             print('Oops. Config file not found.')
 
-#class YGODeckManager:
+class YGODeckManager:
     
+    def __init__(self,path_to_decks:str):
+
+        pass
+
 
 class Pyugioh:
 
     def __cardlist_load(self,path:str):
-        
+        path = self.config.api_path
         try:
-            with open('/home/bisneksual/Documents/pyugioh/db/sample/all.json','r') as fp:
+            with open(path,'r') as fp:
                 result = json.load(fp)
                 card_data = result.get('data')
 
@@ -429,11 +435,16 @@ class Pyugioh:
         except Exception as e:
             print(e)
             self.cardlist = None
+    
+    def __init_deckman(self):
+        path = self.config.deck_path
+        self.__deckman = YGODeckManager(path)
+        pass
 
     def __init__(self):
-        self.__config = PyugiohConfig()
-        self.__cardlist_load(self.__config.api_path)
-        
+        self.config = PyugiohConfig()
+        self.__cardlist_load(self.config.api_path)
+        self.__init_deckman()
 
 
 if __name__=="__main__":
