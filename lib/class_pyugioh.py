@@ -37,3 +37,10 @@ class Deck:
         self.comment = self._data.get('comments')
         #if "path_to_deck" in kwargs.keys:
         #    self.__path = 
+
+class Collection:
+    _data = None
+
+    def __init__(self,coll_data:list[dict]):
+        self.__data = coll_data
+        pass

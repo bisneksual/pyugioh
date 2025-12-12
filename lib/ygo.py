@@ -1,12 +1,13 @@
 import json
 from constants import BANLIST_MAP,LINKMARKER_MAP
 import re
-from class_pyugioh import Card, Deck
+from class_pyugioh import Card, Deck, Collection
 import yaml
 from configparser import ConfigParser
 import os
 from pathlib import Path
 import requests
+import itertools as it
 
 class YGOCard(Card):
     #General Yu-Gi-Oh card class used to declare and manipulate all Yu-Gi-Oh cards
@@ -212,7 +213,7 @@ class YGOSkill(YGOCard):
 
         self.cardType = 'skill'
 
-class YGOExtraDeck(YGOMonster):
+class YGOExtraMonster(YGOMonster):
     #Card class used specifically for monsters that belong in the Extra Deck (i.e. Fusion, Synchro, Xyz, and Link)
     #A separate property for storing the type of Extra Deck monster will be created with the prefix 'x'
 
@@ -264,7 +265,7 @@ class YGOCardList:
 
     def __list_load(self,data:list[dict]):
         self.__card_list = data
-        print('[__list_load] List loaded!')
+        #print('[__list_load] List loaded!')
 
         _codes = {
             str(y.get('id')): [
@@ -272,7 +273,7 @@ class YGOCardList:
             ] for y in data if isinstance(y,dict) and 'id' in y and 'card_images' in y
         }
         self.__passcodemap = _codes
-        print('[__list_load] passcode lookup map updated!')
+        #print('[__list_load] passcode lookup map updated!')
 
         _codes = {
             str(y.get('id')): [
@@ -280,7 +281,7 @@ class YGOCardList:
             ] for y in data if isinstance(y,dict) and 'id' in y and 'card_sets' in y
         }
         self.__setcodemap = _codes
-        print('[__list_load] set code lookup map updated!')
+        #print('[__list_load] set code lookup map updated!')
 
     def __search_passcodes(self,passcode:str|int):
         if isinstance(passcode,str):
@@ -320,7 +321,7 @@ class YGOCardList:
         card_stuff = self.__get_card_data(code)
         if card_stuff:
             card_type = card_stuff.get('type')
-            card =  YGOExtraDeck(card_stuff,**kwargs) if any((x in card_type for x in ('Fusion','Synchro','Link','XYZ'))) \
+            card =  YGOExtraMonster(card_stuff,**kwargs) if any((x in card_type for x in ('Fusion','Synchro','Link','XYZ'))) \
                         else YGOSpell(card_stuff,**kwargs) if 'Spell' in card_type \
                         else YGOTrap(card_stuff,**kwargs) if 'Trap' in card_type \
                         else YGOToken(card_stuff,**kwargs) if 'Token' in card_type \
@@ -390,13 +391,58 @@ class YGOCardList:
 
 class YGODeck(Deck):
 
+    def __update_map(self):
+        self.__deckmap = {key:self.__decklist.get(key) for key in ('main','extra','side','skill')}
+        pass
+
     def __init__(self, deck_data, **kwargs):
         super().__init__(deck_data, **kwargs)
-        self.__cards = self._data.get('cards')
-    
+        _decklist = self._data.get('cards')
+        #self.__main = _decklist.get('main')
+        #self.__xtra = _decklist.get('extra')
+        #self.__side = _decklist.get('side')
+        #self.__skill = _decklist.get('skill')
+        #self.__deckmap = (self.__main,self.__xtra,self.__side,self.__skill)
+        self.__deckmap = {key:_decklist.get(key) for key in ('main','extra','side','skill')}
+        #print(self.__deckmap)
+
     def get_cards(self):
-        #card_list = []
-        #for card in self.__cards:
+        cards = {
+            key: list(it.chain.from_iterable([
+                [next(iter(card.keys()))] * int(next(iter(card.values()))) \
+                if isinstance(card,dict) else [card]
+                for card in _list
+            ])) if _list else []
+             for key, _list in self.__deckmap.items()
+        }
+        return cards
+    
+    def num_cards(self):
+        card_counts = {
+            key: sum(
+                next(iter(card.values())) \
+                    if isinstance(card,dict) and len(card.keys())==1 \
+                    else 1
+                for card in list
+            ) if list else 0 \
+            for key, list in self.__deckmap.items() \
+        }
+        return card_counts
+
+    #def get_card()
+
+    #TODO remove cards from deck
+    #TODO find a way to retrieve cards from deck using passcode or set code, regardless of which version is stored in the deck
+
+class YGOCollection(Collection):
+
+    def __init__(self, coll_data):
+        super().__init__(coll_data)
+        
+
+class YGODeckValidator:
+
+    def __init__(self):
         pass
 
 class PyugiohConfig:
@@ -419,6 +465,10 @@ class PyugiohConfig:
 
 class YGODeckManager:
 
+    def __deck_name_strip(self,deck_name:str):
+        new_name = ''.join(char for char in deck_name.lower() if char.isalnum())
+        return new_name
+
     def __update_decks(self):
         self.__decks = [p.name for p in Path(self.__deckpath).rglob("*") if p.is_file()]
 
@@ -426,16 +476,31 @@ class YGODeckManager:
         if not os.path.isdir(path_to_decks):
             os.mkdir(path_to_decks)
         self.__deckpath = path_to_decks
-        self.__decks = [p.name for p in Path(self.__deckpath).rglob("*") if p.is_file()]
+        self.__update_decks()
         pass
 
     def get_decks(self):
         return self.__decks
+    
+    def get_deck(self,deck_name:str):
+        if self.deck_exists(deck_name):
+            strip_name = self.__deck_name_strip(deck_name)
+            with open(os.path.join(self.__deckpath,strip_name + ".deck"),'r') as fp:
+                _deck_data = yaml.safe_load(fp)
+            _deck = YGODeck(_deck_data)
+            return _deck
+        else:
+            print(f"Deck '{strip_name}' does not exist.")
+    
+    def deck_exists(self,deck_name:str):
+        strip_name = self.__deck_name_strip(deck_name)
+        return f'{strip_name}.deck' in self.__decks
 
     def new_deck(self,deck_name:str,is_fantasy:bool = True, comment: str = ''):
-        path = os.path.join(self.__deckpath,deck_name + ".deck")
+        strip_name = self.__deck_name_strip(deck_name)
+        path = os.path.join(self.__deckpath,strip_name + '.deck')
         if os.path.isfile(path):
-            print(f"Oops. File {path} already exists")
+            print(f"Deck '{strip_name}' already exists. Deck not created.")
         else:
             base_deck = {}
             base_deck['name'] = deck_name
@@ -445,21 +510,11 @@ class YGODeckManager:
 
             with open(path,'w') as fp:
                 yaml.safe_dump(dict(deck=base_deck),fp)
-            print(f"Deck {deck_name} created!")
+            print(f"Deck '{strip_name}' created!")
         
         self.__update_decks()
-
-    #def get_deck(self,deck_name):
         
-
-#class DeckManager:
-    
-#    def __init__(self,path_to_decks:dict):
-        
-#        self.ygo = YGODeckManager(os.path.join(path_to_decks,'ygo'))
-
-        #print(decks)
-#        pass
+    #TODO develop a way to add cards to a deck, validating against a collection
 
 class APIManager:
 
@@ -498,15 +553,12 @@ class Pyugioh:
 
 
 if __name__=="__main__":
-    #fp = open('/home/bisneksual/Documents/pyugioh/db/sample/all.json','r')
-    #result = json.load(fp)
-    #card_data = result['data']
 
     pygo = Pyugioh()
-    card = pygo.cardlist.from_set_code('SDK-001')
-    print(pygo.deckman.get_decks())
-    pygo.deckman.new_deck('yugi')
-    print(pygo.deckman.get_decks())
+    deck = pygo.deckman.get_deck('kaiba')
+    print(deck.get_cards())
+    print(deck.num_cards())
+
     #print(card.pp())
 
     #print(cl.search(set_code="SDK-001"))
