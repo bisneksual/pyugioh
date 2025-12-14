@@ -1,6 +1,9 @@
 import json
-from constants import BANLIST_MAP,LINKMARKER_MAP
+from constants import BANLIST_MAP,LINKMARKER_MAP,DECKZONEKEYS
+from schema import YGODECKSCHEMA
+from jsonschema import validate
 import re
+from io import StringIO
 from class_pyugioh import Card, Deck, Collection
 import yaml
 from configparser import ConfigParser
@@ -8,6 +11,7 @@ import os
 from pathlib import Path
 import requests
 import itertools as it
+import uuid
 
 class YGOCard(Card):
     #General Yu-Gi-Oh card class used to declare and manipulate all Yu-Gi-Oh cards
@@ -111,7 +115,11 @@ class YGOCard(Card):
     #Pretty prints the card data using the repr method
     #def pp(self):
     #    info = repr(self)
-    #    return 
+    #    return
+
+    def get_code2(self):
+        _code = self.secondarySetCode if hasattr(self,'secondarySetCode') else self.secondaryPasscode if hasattr(self,'secondaryPasscode') else self.passcode
+        return _code
 
 class YGOMonster(YGOCard):
     #Class meant specifically for Yu-Gi-Oh monster cards. This class is 
@@ -391,19 +399,24 @@ class YGOCardList:
 
 class YGODeck(Deck):
 
-    def __update_map(self):
-        self.__deckmap = {key:self.__decklist.get(key) for key in ('main','extra','side','skill')}
-        pass
+    def __add_card_to_zone(self,code,num,zone):
+        if num<1:
+            print("Oops: num isn't a positive integer")
+            return 1
+        if zone not in DECKZONEKEYS:
+            print("Oops: zone indicator is not valid")
+            return 1
+        if not self.__deckmap.get(zone):
+            self.__deckmap[zone] = []
+        self.__deckmap[zone] += [code] * num
+
+        return 0
+            
 
     def __init__(self, deck_data, **kwargs):
         super().__init__(deck_data, **kwargs)
         _decklist = self._data.get('cards')
-        #self.__main = _decklist.get('main')
-        #self.__xtra = _decklist.get('extra')
-        #self.__side = _decklist.get('side')
-        #self.__skill = _decklist.get('skill')
-        #self.__deckmap = (self.__main,self.__xtra,self.__side,self.__skill)
-        self.__deckmap = {key:_decklist.get(key) for key in ('main','extra','side','skill')}
+        self.__deckmap = {key:_decklist.get(key) for key in DECKZONEKEYS}
         #print(self.__deckmap)
 
     def get_cards(self):
@@ -429,7 +442,15 @@ class YGODeck(Deck):
         }
         return card_counts
 
-    #def get_card()
+    def add_card(self,card_to_add:YGOCard,quantity:int = 1,zone_key:str = 'main'):
+        if quantity<1:
+            print('Oops: designated card quantity is invalid')
+        
+        _code = card_to_add.get_code2()
+        
+        result = self.__add_card_to_zone(_code,quantity,zone_key)
+        if result==0:
+            print('Card added successfully!')
 
     #TODO remove cards from deck
     #TODO find a way to retrieve cards from deck using passcode or set code, regardless of which version is stored in the deck
@@ -438,9 +459,21 @@ class YGOCollection(Collection):
 
     def __init__(self, coll_data):
         super().__init__(coll_data)
-        
 
-class YGODeckValidator:
+class YGOValidator:
+
+    def __schema_validate(self,obj,_schema):
+        try:
+            _valid =  validate({'deck':obj},_schema)
+            return (_valid is None)
+        except Exception as e:
+            print(e)
+            return False
+    
+    def validate_deck(self,deck:Deck):
+        data = deck._data
+        schema = yaml.safe_load(StringIO(YGODECKSCHEMA))
+        return self.__schema_validate(data,schema)
 
     def __init__(self):
         pass
@@ -471,6 +504,9 @@ class YGODeckManager:
 
     def __update_decks(self):
         self.__decks = [p.name for p in Path(self.__deckpath).rglob("*") if p.is_file()]
+    
+    def  __write_deck_to_file(self,deck__to__write:YGODeck):
+        pass
 
     def __init__(self,path_to_decks:str):
         if not os.path.isdir(path_to_decks):
@@ -521,6 +557,12 @@ class APIManager:
     def __init__(self):
         pass
 
+class YGOCollectionManager:
+
+    def __init__(self,path:str):
+        self.__collpath = path
+        
+
 class Pyugioh:
 
     def __cardlist_load(self,path:str):
@@ -547,6 +589,8 @@ class Pyugioh:
 
     def __init__(self):
         self.config = PyugiohConfig()
+        self.validator = YGOValidator()
+
         self.__cardlist_load(self.config.api_path)
         self.__init_deckman()
         self.__init_dataman()
@@ -555,9 +599,14 @@ class Pyugioh:
 if __name__=="__main__":
 
     pygo = Pyugioh()
-    deck = pygo.deckman.get_deck('kaiba')
-    print(deck.get_cards())
-    print(deck.num_cards())
+    deck = pygo.deckman.get_deck('bait')
+
+    print(pygo.validator.validate_deck(deck))
+
+    #s_card = pygo.cardlist.from_set_code('SDK-001')
+    #p_card = pygo.cardlist.from_passcode(76184692)
+    #deck.add_card(s_card)
+    #deck.add_card(p_card)
 
     #print(card.pp())
 

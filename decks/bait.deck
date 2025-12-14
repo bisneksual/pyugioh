@@ -1,7 +1,7 @@
 deck:
-  game: ygo
-  name: Starter Deck Kaiba
-  fantasy: false
+  game: 67
+  name: Bait Deck
+  fantasy: "false"
   comments:  ""
   cards:
     main:

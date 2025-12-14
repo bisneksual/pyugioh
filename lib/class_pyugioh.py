@@ -1,5 +1,6 @@
 import json
 import ast
+import uuid
 
 class Card:
     #Generic card class meant to represent all cards in library from all games
@@ -43,4 +44,5 @@ class Collection:
 
     def __init__(self,coll_data:list[dict]):
         self.__data = coll_data
+        self.uuid = self.__data.get('uuid')
         pass
