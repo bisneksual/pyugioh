@@ -2,3 +2,4 @@ venv/*
 planning/*
 db/*.ini
 __junk/*
+workpad.py
