@@ -444,13 +444,13 @@ class YGODeck(Deck):
 
     def add_card(self,card_to_add:YGOCard,quantity:int = 1,zone_key:str = 'main'):
         if quantity<1:
-            print('Oops: designated card quantity is invalid')
+            return 3 # invalid quantity
         
         _code = card_to_add.get_code2()
         
         result = self.__add_card_to_zone(_code,quantity,zone_key)
         if result==0:
-            print('Card added successfully!')
+            return 0 # successful add
 
     #TODO remove cards from deck
     #TODO find a way to retrieve cards from deck using passcode or set code, regardless of which version is stored in the deck
@@ -459,12 +459,13 @@ class YGOCollection(Collection):
 
     def __init__(self, coll_data):
         super().__init__(coll_data)
+    
 
 class YGOValidator:
 
     def __schema_validate(self,obj,_schema):
         try:
-            _valid =  validate({'deck':obj},_schema)
+            _valid =  validate(obj,_schema)
             return (_valid is None)
         except Exception as e:
             print(e)
@@ -473,7 +474,7 @@ class YGOValidator:
     def validate_deck(self,deck:Deck):
         data = deck._data
         schema = yaml.safe_load(StringIO(YGODECKSCHEMA))
-        return self.__schema_validate(data,schema)
+        return self.__schema_validate({'deck':data},schema)
 
     def __init__(self):
         pass
@@ -493,62 +494,108 @@ class PyugiohConfig:
             
             self.api_path = os.path.join(self.__home_path,cparse.get('ygo','api_path'))
             self.deck_path = os.path.join(self.__home_path,cparse.get('ygo','deck_path'))
+            self.coll_path = os.path.join(self.__home_path,cparse.get('ygo','coll_path'))
+
         else:
             print('Oops. Config file not found.')
 
 class YGODeckManager:
 
-    def __deck_name_strip(self,deck_name:str):
-        new_name = ''.join(char for char in deck_name.lower() if char.isalnum())
-        return new_name
-
-    def __update_decks(self):
-        self.__decks = [p.name for p in Path(self.__deckpath).rglob("*") if p.is_file()]
+    def __strip_key(self,keyname:str):
+        _name = ''.join(char.lower() for char in keyname if char.isalnum())
+        return _name
     
-    def  __write_deck_to_file(self,deck__to__write:YGODeck):
-        pass
+    def __get_uuid(self):
+        return str(uuid.uuid4())
+    
+    def __exists(self,keyname:str):
+        return (keyname in self.__deckmap)
+
+    def __write_map(self):
+        if self.__deckmap:
+            with open(os.path.join(self.__deckpath,'_map'),'w') as fp:
+                yaml.safe_dump(self.__deckmap,fp)
+            return 0 #successful write
+        return 1 # collmap does not exist
+    
+    def __fetch_uuid(self,keyname: str):
+        if self.__exists(keyname):
+            _uuid = self.__deckmap.get(keyname)
+            if _uuid:
+                return _uuid
+        return 1
+    
+    def __write_deck(self,deck_data:dict):
+        _data = deck_data.get('deck')
+        if _data:
+            _uuid = _data.get('uuid')
+            with open(os.path.join(self.__deckpath,_uuid+'.deck'),'w') as fp:
+                yaml.safe_dump(deck_data,fp)
+            return 0
+        return 1 # deck schema error
 
     def __init__(self,path_to_decks:str):
         if not os.path.isdir(path_to_decks):
             os.mkdir(path_to_decks)
         self.__deckpath = path_to_decks
-        self.__update_decks()
-        pass
 
-    def get_decks(self):
-        return self.__decks
+        with open(os.path.join(self.__deckpath,"_map"),'r') as fp:
+            _data = yaml.safe_load(fp)
+        self.__deckmap = _data.get('deck')
+
+    def list_decks(self):
+        if self.__deckmap:
+            return list(self.__deckmap.keys())
+        return 1 # deckmap does not exist
     
     def get_deck(self,deck_name:str):
-        if self.deck_exists(deck_name):
-            strip_name = self.__deck_name_strip(deck_name)
-            with open(os.path.join(self.__deckpath,strip_name + ".deck"),'r') as fp:
-                _deck_data = yaml.safe_load(fp)
-            _deck = YGODeck(_deck_data)
-            return _deck
-        else:
-            print(f"Deck '{strip_name}' does not exist.")
+        if self.exists(deck_name):
+            _uuid = self.__fetch_uuid(deck_name)
+            if isinstance(_uuid,str):
+                with open(os.path.join(self.__deckpath,_uuid + ".deck"),'r') as fp:
+                    _deck_data = yaml.safe_load(fp)
+                _deck = YGODeck(_deck_data)
+                return _deck
+            return 2 #error retrieving uuid
+        return 1 #deck does not exist
     
-    def deck_exists(self,deck_name:str):
-        strip_name = self.__deck_name_strip(deck_name)
-        return f'{strip_name}.deck' in self.__decks
+    def exists(self,deck_name:str):
+        return self.__exists(deck_name)
 
-    def new_deck(self,deck_name:str,is_fantasy:bool = True, comment: str = ''):
-        strip_name = self.__deck_name_strip(deck_name)
-        path = os.path.join(self.__deckpath,strip_name + '.deck')
-        if os.path.isfile(path):
-            print(f"Deck '{strip_name}' already exists. Deck not created.")
-        else:
-            base_deck = {}
-            base_deck['name'] = deck_name
-            base_deck['fantasy'] = is_fantasy
-            base_deck['comments'] = comment
-            base_deck['cards']  =  []
+    def new_deck(self,deck_name:str,keyname:str,is_fantasy:bool = True, comment: str = ''):
+        _key = self.__strip_key(keyname)
+        if not self.exists(_key):
+            
+            _uuid = self.__get_uuid()
+            base_deck = {
+                'name': deck_name,
+                'keyname': _key,
+                'uuid': _uuid,
+                'fantasy': is_fantasy,
+                'comments': comment,
+                'cards': {},
+            }
 
-            with open(path,'w') as fp:
-                yaml.safe_dump(dict(deck=base_deck),fp)
-            print(f"Deck '{strip_name}' created!")
-        
-        self.__update_decks()
+            result = self.__write_deck(base_deck)
+            if result==0:
+                self.__deckmap[_key] = _uuid
+                result = self.__write_map()
+                if result==0:
+                    return 0
+            return 4 # problem writing deck to file
+
+    def rm_deck(self,keyname:str):
+        if self.exists(keyname):
+            _uuid = self.__fetch_uuid(keyname)
+            if isinstance(_uuid,str):
+                os.remove(os.path.join(self.__deckpath,_uuid + '.deck'))
+                self.__deckmap.pop(keyname)
+                _write = self.__write_map()
+                if _write==0:
+                    return 0 #successful removal
+                return 3 # problem updating keyname map
+            return _uuid #error with fetching uuid
+        return 1 #keyname does not exist
         
     #TODO develop a way to add cards to a deck, validating against a collection
 
@@ -559,9 +606,80 @@ class APIManager:
 
 class YGOCollectionManager:
 
+    def __get_uuid(self):
+        return str(uuid.uuid4())
+    
+    def __write_map(self):
+        if self.__collmap:
+            with open(os.path.join(self.__collpath,'_map'),'w') as fp:
+                yaml.safe_dump(self.__collmap,fp)
+            return 0 #successful write
+        return 1 # collmap does not exist
+    
+    def __fetch_uuid(self,keyname:str):
+        if self.__collmap:
+            if keyname not in self.__collmap:
+                _uuid = self.__collmap.get(keyname)
+                return _uuid
+            return 2 # keyname does not exist
+        return 1 # collmap does not exist
+
     def __init__(self,path:str):
         self.__collpath = path
+        with open(os.path.join(self.__collpath,"_map"),'r') as fp:
+            self.__collmap = yaml.safe_load(fp).get('coll')
+
+    def exists(self,keyname:str):
+        return (keyname in self.__collmap)
+
+    def get_coll(self,keyname:str):
+        if self.exists(keyname):
+            _uuid = self.__collmap.get(keyname)
+            with open(os.path.join(self.__collpath,_uuid +'.coll'),'r') as fp:
+                _data = yaml.safe_load(fp)
+            _coll = YGOCollection(_data.get('coll'))
+            return _coll
+        print('Oops: key name does not exist')
+    
+    def list_colls(self):
+        _list = list(self.__collmap.keys())
+        return _list
+    
+    def new_coll(self,keyname:str,name:str,**kwargs):
+        if self.exists(keyname):
+            return 1 # keyname exists
+        if not keyname.isalnum() or keyname.isnumeric():
+            return 2 # invalid keyname
+        _comments = kwargs.get('comments')
+        _uuid = self.__get_uuid()
+        self.__collmap[keyname] = _uuid
+
+        _info = {
+            'name': name,
+            'keyname': keyname,
+            'uuid': _uuid,
+            'cards':[]
+        }
+        if _comments:
+            _info['comments'] = _comments
         
+        with open(os.path.join(self.__collpath,_uuid+'.coll'),'w') as fp:
+            yaml.safe_dump({'coll':_info},fp)
+        
+        return 0 # coll created successfully
+    
+    def rm_coll(self,keyname:str):
+        if self.exists(keyname):
+            _uuid = self.__fetch_uuid(keyname)
+            if isinstance(_uuid,str):
+                os.remove(os.path.join(self.__collpath,_uuid + '.coll'))
+                self.__collmap.pop(keyname)
+                _write = self.__write_map()
+                if _write==0:
+                    return 0 #successful removal
+                return 3 # problem updating keyname map
+            return _uuid #error with fetching uuid
+        return 1 #keyname does not exist
 
 class Pyugioh:
 
@@ -587,6 +705,10 @@ class Pyugioh:
         self.dataman = APIManager()
         pass
 
+    def __init_collman(self):
+        _path = self.config.coll_path
+        self.collman = YGOCollectionManager(_path)
+
     def __init__(self):
         self.config = PyugiohConfig()
         self.validator = YGOValidator()
@@ -594,27 +716,11 @@ class Pyugioh:
         self.__cardlist_load(self.config.api_path)
         self.__init_deckman()
         self.__init_dataman()
+        self.__init_collman()
 
 
 if __name__=="__main__":
 
     pygo = Pyugioh()
-    deck = pygo.deckman.get_deck('bait')
 
-    print(pygo.validator.validate_deck(deck))
-
-    #s_card = pygo.cardlist.from_set_code('SDK-001')
-    #p_card = pygo.cardlist.from_passcode(76184692)
-    #deck.add_card(s_card)
-    #deck.add_card(p_card)
-
-    #print(card.pp())
-
-    #print(cl.search(set_code="SDK-001"))
-    #card = cl.from_set_code("SDK-001")
-    #print(card.pp())
-
-    #with open('/home/bisneksual/Documents/pyugioh/example/kaiba_decklist.yaml','r') as deck:
-    #    deck_info = yaml.safe_load(deck)
-    
-    #print(deck_info)
+    #print(result)

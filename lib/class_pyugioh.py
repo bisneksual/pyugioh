@@ -40,9 +40,22 @@ class Deck:
         #    self.__path = 
 
 class Collection:
-    _data = None
 
-    def __init__(self,coll_data:list[dict]):
+    def __init__(self,coll_data:dict):
         self.__data = coll_data
         self.uuid = self.__data.get('uuid')
-        pass
+        self.keyname = self.__data.get('keyname')
+        self.coll_name = self.__data.get('name')
+        self.comments = self.__data.get('comments')
+        self.__cards = self.__data.get('cards')
+    
+    def num_cards(self):
+        count = sum(
+            next(iter(card.values())) if isinstance(card,dict) and len(card.keys())==1
+            else 1 \
+            for card in self.__cards
+        )
+        return count
+
+    def get_cards(self):
+        return self.__cards

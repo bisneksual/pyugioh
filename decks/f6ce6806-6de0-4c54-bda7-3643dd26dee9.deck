@@ -1,5 +1,7 @@
 deck:
   cards: []
+  uuid: f6ce6806-6de0-4c54-bda7-3643dd26dee9
   comments: ''
   fantasy: true
   name: yugi
+  keyname: yugi

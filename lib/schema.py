@@ -47,11 +47,19 @@ properties:
       name:
         description: The name assigned to the deck by the user
         type: string
+      keyname:
+        description: A string that the user provides to reference the deck
+        type: string
+      uuid:
+        description: A unique ID string assigned to the deck
+        type: string
     required:
     - game
     - name
     - fantasy
     - cards
+    - keyname
+    - uuid
     type: object
 required:
 - deck
