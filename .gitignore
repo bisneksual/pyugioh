@@ -1,5 +1,8 @@
 venv/*
 planning/*
-db/*.ini
+db/*
+lib/*
+decks/*
+colls/*
 __junk/*
 workpad.py

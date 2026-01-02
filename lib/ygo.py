@@ -408,15 +408,39 @@ class YGODeck(Deck):
             return 1
         if not self.__deckmap.get(zone):
             self.__deckmap[zone] = []
-        self.__deckmap[zone] += [code] * num
+        self.__deckmap[zone] += [code] if num==1 else [{code: num}]
 
-        return 0
-            
+        return 0  
+
+    def __remove_card_from_zone(self,code,num:int,zone):
+        if zone not in DECKZONEKEYS:
+            return 3 # invalid zone indicator
+        _deckzone = list(self.__deckmap.get(zone))
+        #print(_deckzone)
+        if _deckzone is None:
+            return 4 # reference issue with deckmap
+        
+        #print(code + ' => ' + str(list(enumerate(_deckzone))))
+        _card_index = list(
+            i for i, x in enumerate(_deckzone)
+            if x==code
+            or (isinstance(x,dict) and x.get(code))
+        )
+
+        _index = next(iter(_card_index))
+
+        if num<0:
+            new_zone = _deckzone.pop(_index)
+
+
+        #if isinstance(num,int) and num>0:
+
+        return _card_index
 
     def __init__(self, deck_data, **kwargs):
         super().__init__(deck_data, **kwargs)
         _decklist = self._data.get('cards')
-        self.__deckmap = {key:_decklist.get(key) for key in DECKZONEKEYS}
+        self.__deckmap = {key:_decklist.get(key) for key in DECKZONEKEYS if key in _decklist}
         #print(self.__deckmap)
 
     def get_cards(self):
@@ -441,6 +465,21 @@ class YGODeck(Deck):
             for key, list in self.__deckmap.items() \
         }
         return card_counts
+    
+    def find(self,**kwargs):
+        _code = kwargs.get('passcode') if 'passcode' in kwargs else kwargs.get('set_code') if 'set_code' in kwargs else None
+        if _code:
+            counts = {
+                key: sum(
+                    x.get(_code) if isinstance(x,dict) and next(iter(x.keys()))==_code \
+                    else 1 if isinstance(x,(int,str)) and x==_code \
+                    else 0 \
+                    for x in zone
+                )
+                for key, zone in self.__deckmap.items() if key in self.__deckmap
+            }
+            return {_code:counts}
+        return 8 #invalid args
 
     def add_card(self,card_to_add:YGOCard,quantity:int = 1,zone_key:str = 'main'):
         if quantity<1:
@@ -451,6 +490,16 @@ class YGODeck(Deck):
         result = self.__add_card_to_zone(_code,quantity,zone_key)
         if result==0:
             return 0 # successful add
+    
+    def get_map(self):
+        return self.__deckmap
+
+    def remove_card(self,_set_code:str,num_to_remove:int = -1):
+        _find = self.find(set_code=_set_code)
+        print(_find)
+        for _zone in _find.get(_set_code):
+            self.__remove_card_from_zone(_set_code,num_to_remove,_zone)
+        return 0        
 
     #TODO remove cards from deck
     #TODO find a way to retrieve cards from deck using passcode or set code, regardless of which version is stored in the deck
@@ -722,5 +771,18 @@ class Pyugioh:
 if __name__=="__main__":
 
     pygo = Pyugioh()
+    deck = pygo.deckman.get_deck('bait')
+    result = deck.get_map()
+    print(result)
+
+    #card = pygo.cardlist.from_set_code("SDK-002")
+    #result = card.pp()
 
     #print(result)
+
+    #result = deck.add_card(card)
+    #result = deck.get_map()
+    #print(result)
+
+    result = deck.remove_card('SDK-004',1)
+    print(result)

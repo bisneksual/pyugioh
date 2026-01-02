@@ -1,9 +1,9 @@
 deck:
-  game: 67
+  game: ygo
   uuid: 15
   name: Bait Deck
   keyname: bait
-  fantasy: "false"
+  coll: kaiba
   comments:  ""
   cards:
     main:

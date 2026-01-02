@@ -1,6 +1,7 @@
 coll:
   name: Kaiba Collection
   keyname: kaiba
+  game: ygo
   uuid: 'e8f6a076-3ac4-4396-a3f2-6371814f73a0'
   comments:  ""
   cards:
