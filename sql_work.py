@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 import json
 import yaml
-from lib.constants import SQLITE_SCHEMAS, SQLITE_DATAKEYS
+from lib._class.constants import SQLITE_SCHEMAS, SQLITE_DATAKEYS
 
 class DataManager:
     def __connect(self):
@@ -205,53 +205,100 @@ for card,codes in _passcode_map.items():
 df = dataman.get_table('passcode_map')
 print(len(df))
 
+#Create a table in the pyugioh database for collection information
+
 print('[create table] {}'.format(dataman.create_table('coll_info')))
+
+#Read and load a collection file for testing
 
 with open("colls/e8f6a076-3ac4-4396-a3f2-6371814f73a0.coll","r") as fp:
     coll = yaml.safe_load(fp)
 
 coll_data = coll.get('coll')
 
+#Add the collection to the database
+
 print('[add entry] {}'.format(dataman.add_entry('coll_info',coll_data)))
+
+#Fetch the collection info table to verify that data has been loaded correctly
 
 df = dataman.get_table('coll_info')
 print(df.head())
 
+#Create a table in the pyugioh database for collection cardlist
+
 print('[create table] {}'.format(dataman.create_table('coll_cards')))
+
+#Extract the collection card information from the file
 
 key = coll_data.get('keyname')
 cards = coll_data.get('cards')
 
+#Iterate through each of the cards
+
 for card in cards:
+
+    #Set the information to be passed into the table based on the data included
+
     code, quantity = next(iter(card.items())) if isinstance(card,dict) else (card,1)
     row = {'coll_name':key,'card_set_code':(code if isinstance(code,str) else None),'card_passcode':code if isinstance(code,int) else None,'quantity':quantity}
+    
+    #Pass the data into the table, leaving certain fields blank based on what is necessary
+    
     print('[add entry] {}'.format(dataman.add_entry('coll_cards',row)))
+
+#Fetch the collection info table to verify that data has been loaded correctly
 
 df = dataman.get_table('coll_cards')
 print(df.head())
+
+#Read and load a deck file for testing
 
 with open("decks/675be712-4201-4cb2-a862-2e035901e241.deck","r") as fp:
     deck = yaml.safe_load(fp)
 
 deck_data = deck.get('deck')
 
+#Create a table in the pyugioh database for the deck information
+
 print('[create table] {}'.format(dataman.create_table("deck_info")))
 
+#Add the deck to the database
+
 print("[add entry] {}".format(dataman.add_entry("deck_info",deck_data)))
+
+#Fetch the data info table to verify that data has been loaded correctly
 
 df = dataman.get_table('deck_info')
 print(df.head())
 
+#Create a table in the pyugioh database for storing deck cardlists
+
 print('[create table] {}'.format(dataman.create_table('deck_cards')))
+
+#Extract information for passing into the database
 
 key = deck_data.get('keyname')
 deck_cards = deck_data.get('cards')
 
+#Iterate through the separate deck zones and the card lists assign to them
+
 for zone, cards in deck_cards.items():
+
+    #Iterate through the cards in each zone
+
     for card in cards:
+
+        #Set the information to be passed into the table based on the data included
+
         code, quantity = next(iter(card.items())) if isinstance(card,dict) else (card,1)
         row = {'deck_name':key,'deck_zone':zone,'card_set_code':(code if isinstance(code,str) else None),'card_passcode':code if isinstance(code,int) else None,'quantity':quantity}
+        
+        #Pass the data into the table, leaving certain fields blank based on what is necessary
+
         print('[add entry] {}'.format(dataman.add_entry('deck_cards',row)))
+
+#Fetch the data info table to verify that data has been loaded correctly
 
 df = dataman.get_table('deck_cards')
 print(df.head())

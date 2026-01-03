@@ -1,7 +1,6 @@
 venv/*
 planning/*
 db/*
-lib/*
 decks/*
 colls/*
 __junk/*

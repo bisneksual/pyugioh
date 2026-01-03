@@ -1,15 +1,11 @@
-import json
-from constants import BANLIST_MAP,LINKMARKER_MAP,DECKZONEKEYS
-from schema import YGODECKSCHEMA
+from _class.constants import BANLIST_MAP,LINKMARKER_MAP,DECKZONEKEYS
+from _class.schema import YGODECKSCHEMA
 from jsonschema import validate
 import re
 from io import StringIO
-from class_pyugioh import Card, Deck, Collection
+from _class.class_pyugioh import Card, Deck, Collection
 import yaml
-from configparser import ConfigParser
 import os
-from pathlib import Path
-import requests
 import itertools as it
 import uuid
 
@@ -508,7 +504,6 @@ class YGOCollection(Collection):
 
     def __init__(self, coll_data):
         super().__init__(coll_data)
-    
 
 class YGOValidator:
 
@@ -527,26 +522,6 @@ class YGOValidator:
 
     def __init__(self):
         pass
-
-class PyugiohConfig:
-
-    def __init__(self):
-        self.__home_path = Path(__file__).parent.parent
-
-        #print(self.__home_path)
-        self.__config_path = os.path.join(self.__home_path,'config/pyugioh.ini')
-
-        if os.path.isfile(self.__config_path):
-            cparse = ConfigParser()
-            cparse.read(self.__config_path)
-            #print(cparse.sections())
-            
-            self.api_path = os.path.join(self.__home_path,cparse.get('ygo','api_path'))
-            self.deck_path = os.path.join(self.__home_path,cparse.get('ygo','deck_path'))
-            self.coll_path = os.path.join(self.__home_path,cparse.get('ygo','coll_path'))
-
-        else:
-            print('Oops. Config file not found.')
 
 class YGODeckManager:
 
@@ -648,11 +623,6 @@ class YGODeckManager:
         
     #TODO develop a way to add cards to a deck, validating against a collection
 
-class APIManager:
-
-    def __init__(self):
-        pass
-
 class YGOCollectionManager:
 
     def __get_uuid(self):
@@ -729,60 +699,3 @@ class YGOCollectionManager:
                 return 3 # problem updating keyname map
             return _uuid #error with fetching uuid
         return 1 #keyname does not exist
-
-class Pyugioh:
-
-    def __cardlist_load(self,path:str):
-        path = self.config.api_path
-        try:
-            with open(path,'r') as fp:
-                result = json.load(fp)
-                card_data = result.get('data')
-
-                self.cardlist = YGOCardList(card_data) if card_data else None
-        except Exception as e:
-            print(e)
-            self.cardlist = None
-    
-    def __init_deckman(self):
-        path = self.config.deck_path
-        self.deckman = YGODeckManager(path)
-        pass
-
-    def __init_dataman(self):
-        path = self.config.api_path
-        self.dataman = APIManager()
-        pass
-
-    def __init_collman(self):
-        _path = self.config.coll_path
-        self.collman = YGOCollectionManager(_path)
-
-    def __init__(self):
-        self.config = PyugiohConfig()
-        self.validator = YGOValidator()
-
-        self.__cardlist_load(self.config.api_path)
-        self.__init_deckman()
-        self.__init_dataman()
-        self.__init_collman()
-
-
-if __name__=="__main__":
-
-    pygo = Pyugioh()
-    deck = pygo.deckman.get_deck('bait')
-    result = deck.get_map()
-    print(result)
-
-    #card = pygo.cardlist.from_set_code("SDK-002")
-    #result = card.pp()
-
-    #print(result)
-
-    #result = deck.add_card(card)
-    #result = deck.get_map()
-    #print(result)
-
-    result = deck.remove_card('SDK-004',1)
-    print(result)
