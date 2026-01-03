@@ -1,3 +1,4 @@
+import re
 import os
 from pathlib import Path
 from configparser import ConfigParser
@@ -5,9 +6,9 @@ import json
 import yaml
 import pandas as pd
 import sqlite3
-from lib._class.constants import SQLITE_SCHEMAS, SQLITE_DATAKEYS
+from lib.template.constants import SQLITE_SCHEMAS, SQLITE_DATAKEYS
 
-from lib.ygo import YGOCardList, YGODeckManager, YGOCollectionManager, YGOValidator
+from lib.ygo import YGOCardList
 
 class APIManager:
 
@@ -45,27 +46,31 @@ class DataManager:
             if not quiet:
                 print("[__do] {} => {}".format(query,e))
             return 9 #sql error
+    def __remove_entry(self,table:str,row_id:int):
+        pass
     
     def __init_schemas(self,schemas:dict[str:dict]):
-        self.__schemas = {t_key:','.join(
-            "{} {} {} {} {} {} {} {}".format(
-                "foreign key (" if key=='fk' else "",
-                val.get('column') if key=='fk' else key,
-                ")" if key=='fk' else "",
-                val['type'] if 'type' in val else "",
-                ('references ' + val.get('ref').get('table') + '(' + val.get('ref').get('column') + ')') if key=='fk' else "",
-                ' '.join(val['constraints'] if 'constraints' in val else list()),
-                "default " + str(val.get('default')) if 'default' in val else '',
-                ("check (" + key + " in (" + ','.join(repr(x) for x in val.get(('enum'))) + "))") if 'enum' in val else ''
-            ) for key, val in table.items()
-        ) for t_key,table in schemas.items()}
-
-    def __del__(self):
-        self.__db.close()
+        self.__schemas = {
+            t_key:','.join(
+                (
+                    ','.join(
+                        'foreign key (' + next(iter(row.keys())) + ") references " + next(iter(row.values())).get('table') + "(" + next(iter(row.values())).get('column') + ")"
+                        for row in val
+                    ) if key=='(fk)' else 
+                    (
+                        key + " " + \
+                        (val['type'] if 'type' in val else '') + " " +\
+                        (' '.join(val['constraints'] if 'constraints' in val else list())) + " " + \
+                        ("default " + str(val.get('default')) if 'default' in val else '') + " " + \
+                        (('check (' + key + ' in (' + ','.join(repr(x) for x in val.get(('enum'))) + '))') if 'enum' in val else '')
+                    )
+                ) for key, val in table.items()
+            ) for t_key,table in schemas.items()
+        }
 
     def __init__(self,db_name:str):
         self.db_name = db_name
-        result = self.__connect()
+        result = self.__connect(db_name)
         print('[__connect] {}'.format(result))
 
         self.__init_schemas(SQLITE_SCHEMAS)
@@ -116,6 +121,12 @@ class DataManager:
         except sqlite3.Error as e:
             print('[add entry] {}'.format(e))
             return 9 #sqlite error
+    
+    def remove_entry(self,table:str,**kwargs):
+        print(kwargs)
+
+    def __del__(self):
+        self.__db.close()
 
 class PyugiohConfig:
 
@@ -123,7 +134,7 @@ class PyugiohConfig:
         self.__home_path = Path(__file__).parent.parent
 
         #print(self.__home_path)
-        self.__config_path = os.path.join(self.__home_path,'config/pyugioh.ini')
+        self.__config_path = os.path.join('config/pyugioh.ini')
 
         if os.path.isfile(self.__config_path):
             cparse = ConfigParser()
@@ -138,22 +149,10 @@ class PyugiohConfig:
             print('Oops. Config file not found.')
 
 class Pyugioh:
-
-    def __cardlist_load(self,path:str):
-        path = self.config.api_path
-        try:
-            with open(path,'r') as fp:
-                result = json.load(fp)
-                card_data = result.get('data')
-
-                self.cardlist = YGOCardList(card_data) if card_data else None
-        except Exception as e:
-            print(e)
-            self.cardlist = None
     
     def __init_deckman(self):
         path = self.config.deck_path
-        self.deckman = YGODeckManager(path)
+        #self.deckman = ygo.YGODeckManager(path)
         pass
 
     def __init_dataman(self):
@@ -161,21 +160,28 @@ class Pyugioh:
         self.dataman = DataManager(db)
         pass
 
+    def __init_apiman(self):
+        path = self.config.api_path
+        #self.apiman = APIManager()
+
     def __init_collman(self):
         _path = self.config.coll_path
-        self.collman = YGOCollectionManager(_path)
+        #self.collman = ygo.YGOCollectionManager(_path)
+    
+    #def __data_load()
 
     def __init__(self):
         self.config = PyugiohConfig()
-        self.validator = YGOValidator()
-
-        self.__cardlist_load(self.config.api_path)
-        self.__init_deckman()
+        #self.validator = ygo.YGOValidator()
+        
         self.__init_dataman()
+        self.__init_deckman()
         self.__init_collman()
+        self.__init_apiman()
 
 if __name__=="__main__":
+    #sys.path.append("~/Documents/pyugioh")
 
     pygo = Pyugioh()
-    result = pygo.dataman.get_schema('cardlist')
+    result = pygo.dataman.get_schema('coll_cards')
     print(result)

@@ -1,0 +1,1 @@
+from .template import schema,constants,class_pyugioh

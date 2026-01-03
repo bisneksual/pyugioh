@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 import json
 import yaml
-from lib._class.constants import SQLITE_SCHEMAS, SQLITE_DATAKEYS
+from lib.template.constants import SQLITE_SCHEMAS, SQLITE_DATAKEYS
 
 class DataManager:
     def __connect(self):
@@ -129,6 +129,10 @@ dataman = DataManager()
 
 print('[create table] {}'.format(dataman.create_table('cardlist')))
 
+#Create card prices table to be filled concurrently with cardlist
+
+print('[create table] {}'.format(dataman.create_table('card_prices')))
+
 with open('example/all.json','r') as fp:
     all_cards = json.load(fp)
 
@@ -172,6 +176,7 @@ for card in card_data:
     #Pass the card into to the data manager to be added to the cardlist table
 
     dataman.add_entry('cardlist',card)
+    dataman.add_entry('card_prices',card)
 
 #Fetch the contents of the cardlist table to verify that all of the API response entries were parsed and none were rejected
 df = dataman.get_table('cardlist')
@@ -302,3 +307,4 @@ for zone, cards in deck_cards.items():
 
 df = dataman.get_table('deck_cards')
 print(df.head())
+

@@ -1,9 +1,9 @@
-from _class.constants import BANLIST_MAP,LINKMARKER_MAP,DECKZONEKEYS
-from _class.schema import YGODECKSCHEMA
+#from constants import BANLIST_MAP,LINKMARKER_MAP,DECKZONEKEYS
+#from schema import YGODECKSCHEMA
 from jsonschema import validate
 import re
 from io import StringIO
-from _class.class_pyugioh import Card, Deck, Collection
+from lib.template.class_pyugioh import Card, Deck, Collection
 import yaml
 import os
 import itertools as it
@@ -84,9 +84,9 @@ class YGOCard(Card):
         #Convert banlist data to an integer that represents the number of cards 
         #   allowed in a deck based on a certain ruleset
         _ban = _data.get('banlist_info')
-        if _ban:
-            _ban_map = {key.split('_')[-1]: BANLIST_MAP.index(_ban[key]) for key in _ban}
-            self.banlist = _ban_map
+        #if _ban:
+        #    _ban_map = {key.split('_')[-1]: BANLIST_MAP.index(_ban[key]) for key in _ban}
+        #    self.banlist = _ban_map
 
         if 'passcode' in kwargs:
             self.secondaryPasscode = kwargs.get('passcode')
@@ -254,7 +254,7 @@ class YGOExtraMonster(YGOMonster):
             self.lVal = _data.get('linkval')
 
             _link = _data.get('linkmarkers')
-            self.lMarkers = [x in _link for x in LINKMARKER_MAP]
+            #self.lMarkers = [x in _link for x in LINKMARKER_MAP]
         
         elif 'XYZ' in _data.get('type'):
             self.xType= "Xyz"
@@ -399,9 +399,9 @@ class YGODeck(Deck):
         if num<1:
             print("Oops: num isn't a positive integer")
             return 1
-        if zone not in DECKZONEKEYS:
-            print("Oops: zone indicator is not valid")
-            return 1
+        #if zone not in DECKZONEKEYS:
+        #    print("Oops: zone indicator is not valid")
+        #    return 1
         if not self.__deckmap.get(zone):
             self.__deckmap[zone] = []
         self.__deckmap[zone] += [code] if num==1 else [{code: num}]
@@ -409,10 +409,10 @@ class YGODeck(Deck):
         return 0  
 
     def __remove_card_from_zone(self,code,num:int,zone):
-        if zone not in DECKZONEKEYS:
-            return 3 # invalid zone indicator
+        #if zone not in DECKZONEKEYS:
+        #    return 3 # invalid zone indicator
         _deckzone = list(self.__deckmap.get(zone))
-        #print(_deckzone)
+        print(_deckzone)
         if _deckzone is None:
             return 4 # reference issue with deckmap
         
@@ -436,7 +436,7 @@ class YGODeck(Deck):
     def __init__(self, deck_data, **kwargs):
         super().__init__(deck_data, **kwargs)
         _decklist = self._data.get('cards')
-        self.__deckmap = {key:_decklist.get(key) for key in DECKZONEKEYS if key in _decklist}
+        #self.__deckmap = {key:_decklist.get(key) for key in DECKZONEKEYS if key in _decklist}
         #print(self.__deckmap)
 
     def get_cards(self):
@@ -515,10 +515,10 @@ class YGOValidator:
             print(e)
             return False
     
-    def validate_deck(self,deck:Deck):
-        data = deck._data
-        schema = yaml.safe_load(StringIO(YGODECKSCHEMA))
-        return self.__schema_validate({'deck':data},schema)
+    #def validate_deck(self,deck:Deck):
+    #    data = deck._data
+    #    schema = yaml.safe_load(StringIO(YGODECKSCHEMA))
+    #    return self.__schema_validate({'deck':data},schema)
 
     def __init__(self):
         pass
