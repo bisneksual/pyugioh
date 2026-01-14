@@ -125,6 +125,10 @@ class DataManager:
     def remove_entry(self,table:str,**kwargs):
         print(kwargs)
 
+    def full_load(self,card_data:list,coll_data:list,deck_data:list):
+        
+        pass
+
     def __del__(self):
         self.__db.close()
 
@@ -168,7 +172,188 @@ class Pyugioh:
         _path = self.config.coll_path
         #self.collman = ygo.YGOCollectionManager(_path)
     
-    #def __data_load()
+    def data_load(self):
+        print('[create table] {}'.format(self.dataman.create_table('ygo_cardlist')))
+
+        #Create card prices table to be filled concurrently with cardlist
+
+        print('[create table] {}'.format(self.dataman.create_table('ygo_card_prices')))
+
+        with open('example/all.json','r') as fp:
+            all_cards = json.load(fp)
+
+        card_data = all_cards.get('data')
+
+        # Build set code map dictionary for loading later
+
+        _set_map = {card.get('id'):[x.get('set_code') for x in card.get('card_sets',())] for card in card_data}
+
+        # Build passcode map dictionary for loading later
+
+        _passcode_map = {card.get('id'):[x.get('id') for x in card.get('card_images',[])] for card in card_data}
+
+        #Iterate through each card entry in the API response
+
+        for card in card_data:
+            #Assign the card supertype to the card based on the contents of the card type attribute
+
+            _type = card.get('type')
+            card['card_type'] =         'extra' if any(x in _type for x in ('Link','Fusion','Syncro','XYZ')) \
+                                else    'skill' if "Skill" in _type \
+                                else    'spell' if 'Spell' in _type \
+                                else    'trap' if "Trap" in _type \
+                                else    'token' if "Token" in _type \
+                                else    'monster' if "Monster" in _type \
+                                else    'NULL'
+
+            #Separate the monster and pendulum descriptions in the case of a pendulum monster
+
+            card['desc'] =  card.get('monster_desc',card.get('desc'))
+
+            #Clean apostrophes and single quoted out of the monster and pendulum descriptions for parsing purposes
+
+            card['desc'] =  card['desc'] \
+                            .replace("\'","`")
+            
+            if 'pend_desc' in card:
+                card['pend_desc'] = card['pend_desc'] \
+                                    .replace("\'","`")
+
+            #Pass the card into to the data manager to be added to the cardlist table
+
+            self.dataman.add_entry('ygo_cardlist',card)
+            self.dataman.add_entry('ygo_card_prices',card)
+
+        #Fetch the contents of the cardlist table to verify that all of the API response entries were parsed and none were rejected
+        df = self.dataman.get_table('ygo_cardlist')
+        print(len(df))
+
+        #Create a table in the pyugioh database specifically for the set code map
+
+        print('[create table] {}'.format(self.dataman.create_table('ygo_set_map')))
+
+        #Iterate through the dictionary items and parse the value pairs into the SQL table
+
+        for card,codes in _set_map.items():
+            for code in codes:
+                self.dataman.add_entry('ygo_set_map',{'id':card,'code':code})
+
+        #Fetch the set map table to verify that the data was parsed correctly
+        df = self.dataman.get_table('ygo_set_map')
+        print(df.head())
+
+        #Create a table in the pyugioh database specifically for the passcode map
+
+        print('[create table] {}'.format(self.dataman.create_table('ygo_passcode_map')))
+
+        #Iterate through the passcode map and parse each value pair into the SQL table
+
+        for card,codes in _passcode_map.items():
+            for code in codes:
+                self.dataman.add_entry('ygo_passcode_map',{'id':card,'code':code})
+
+        #Fetch the passcode map table to verify that the data was parsed correctly
+        df = self.dataman.get_table('ygo_passcode_map')
+        print(len(df))
+
+        #Create a table in the pyugioh database for collection information
+
+        print('[create table] {}'.format(self.dataman.create_table('coll_info')))
+
+        #Read and load a collection file for testing
+
+        with open("colls/e8f6a076-3ac4-4396-a3f2-6371814f73a0.coll","r") as fp:
+            coll = yaml.safe_load(fp)
+
+        coll_data = coll.get('coll')
+
+        #Add the collection to the database
+
+        print('[add entry] {}'.format(self.dataman.add_entry('coll_info',coll_data)))
+
+        #Fetch the collection info table to verify that data has been loaded correctly
+
+        df = self.dataman.get_table('coll_info')
+        print(df.head())
+
+        #Create a table in the pyugioh database for collection cardlist
+
+        print('[create table] {}'.format(self.dataman.create_table('ygo_coll_cards')))
+
+        #Extract the collection card information from the file
+
+        key = coll_data.get('keyname')
+        cards = coll_data.get('cards')
+
+        #Iterate through each of the cards
+
+        for card in cards:
+
+            #Set the information to be passed into the table based on the data included
+
+            code, quantity = next(iter(card.items())) if isinstance(card,dict) else (card,1)
+            row = {'coll_name':key,'card_set_code':(code if isinstance(code,str) else None),'card_passcode':code if isinstance(code,int) else None,'quantity':quantity}
+            
+            #Pass the data into the table, leaving certain fields blank based on what is necessary
+            
+            print('[add entry] {}'.format(self.dataman.add_entry('ygo_coll_cards',row)))
+
+        #Fetch the collection info table to verify that data has been loaded correctly
+
+        df = self.dataman.get_table('ygo_coll_cards')
+        print(df.head())
+
+        #Read and load a deck file for testing
+
+        with open("decks/675be712-4201-4cb2-a862-2e035901e241.deck","r") as fp:
+            deck = yaml.safe_load(fp)
+
+        deck_data = deck.get('deck')
+
+        #Create a table in the pyugioh database for the deck information
+
+        print('[create table] {}'.format(self.dataman.create_table("deck_info")))
+
+        #Add the deck to the database
+
+        print("[add entry] {}".format(self.dataman.add_entry("deck_info",deck_data)))
+
+        #Fetch the data info table to verify that data has been loaded correctly
+
+        df = self.dataman.get_table('deck_info')
+        print(df.head())
+
+        #Create a table in the pyugioh database for storing deck cardlists
+
+        print('[create table] {}'.format(self.dataman.create_table('ygo_deck_cards')))
+
+        #Extract information for passing into the database
+
+        key = deck_data.get('keyname')
+        deck_cards = deck_data.get('cards')
+
+        #Iterate through the separate deck zones and the card lists assign to them
+
+        for zone, cards in deck_cards.items():
+
+            #Iterate through the cards in each zone
+
+            for card in cards:
+
+                #Set the information to be passed into the table based on the data included
+
+                code, quantity = next(iter(card.items())) if isinstance(card,dict) else (card,1)
+                row = {'deck_name':key,'deck_zone':zone,'card_set_code':(code if isinstance(code,str) else None),'card_passcode':code if isinstance(code,int) else None,'quantity':quantity}
+                
+                #Pass the data into the table, leaving certain fields blank based on what is necessary
+
+                print('[add entry] {}'.format(self.dataman.add_entry('ygo_deck_cards',row)))
+
+        #Fetch the data info table to verify that data has been loaded correctly
+
+        df = self.dataman.get_table('ygo_deck_cards')
+        print(df.head())
+
 
     def __init__(self):
         self.config = PyugiohConfig()
@@ -183,5 +368,6 @@ if __name__=="__main__":
     #sys.path.append("~/Documents/pyugioh")
 
     pygo = Pyugioh()
-    result = pygo.dataman.get_schema('coll_cards')
+    result = pygo.data_load()
+    #result = pygo.
     print(result)
