@@ -1,10 +1,7 @@
 mkdir vol
 
 mkdir vol/data
-mkdir vol/config
 
-cd app/src
+tree .
 
-python -m main
-
-#tree .
+/usr/local/bin/python app/src/__init__.py
