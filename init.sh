@@ -1,7 +1,6 @@
 mkdir vol
-
 mkdir vol/data
 
-tree .
+cd pyugioh
 
-/usr/local/bin/python app/src/__init__.py
+/usr/local/bin/python src/__init__.py
