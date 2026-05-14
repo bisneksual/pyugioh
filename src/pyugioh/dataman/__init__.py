@@ -40,7 +40,7 @@ class DataManager:
         with open(f"{self.config['dataman'].get('data_path')}/ygo_cards.json","w") as fp:
             json.dump(cards,fp)
 
-        print("[dataman] Loading cardlist into database...")
+        #print("[dataman] Loading cardlist into database...")
         
         self.__load_cards(cards.get('data',[]))
         
@@ -59,8 +59,11 @@ class DataManager:
         # and loads the data into a selected database (default: sqlite)
         df_cards = pd.DataFrame(cardlist)
         df_codes = df_cards.explode('card_sets')
-        #print(df_codes.head())
+        self.__connector.create_table("cardlist")
+        print(self.__connector.get_tables())
+        self.__connector.drop_table("cardlist")
+        print(self.__connector.get_tables())
         
 
-        print("[dataman] Printing schema...")
-        df_cards.info()
+        #print("[dataman] Printing schema...")
+        #df_cards.info()

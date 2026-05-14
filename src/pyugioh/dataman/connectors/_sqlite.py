@@ -38,3 +38,9 @@ class SQLite3Connector(_Connector):
 
     def get_tables(self):
         return self.__query(query="select name from sqlite_master where type='table';",get=True)
+    
+    def create_table(self,name:str):
+        return self.__query(query="create table if not exists {} (id integer primary key);".format(name))
+    
+    def drop_table(self,name:str):
+        return self.__query(query="drop table if exists {};".format(name))
