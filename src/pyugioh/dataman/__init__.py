@@ -1,7 +1,7 @@
 import requests
 import json
 from pyugioh.config import Config
-import sqlite3
+from pyugioh.dataman.connectors import SQLite3Connector
 import pandas as pd
 
 class DataManager:
@@ -15,17 +15,19 @@ class DataManager:
         print("[dataman] Initializing...")
 
         self.config = config
-        self.__connect()
+        self.connect()
         self.card_count = 0
 
-    def __connect(self) -> None:
-            self.__conn = sqlite3.connect(self.config['dataman'].get("db_path"))
+    def connect(self) -> None:
+            #self.__conn = sqlite3.connect(self.config['dataman'].get("db_path"))
+            self.__connector = SQLite3Connector()
+            self.__connector.connect()
+    
+    def ping(self) -> str:
+        return "pong" if isinstance(self.__connector,SQLite3Connector) and self.__connector.is_connected() else "Nope."
 
-    def __connected(self):
-        try:
-            return self.__conn.cursor() is not None
-        except:
-            return False
+    def tables(self):
+        return self.__connector.get_tables()
 
     def get_cards(self):
         #Queries API endpoint and saves full cardlist for ingestion into
@@ -54,12 +56,11 @@ class DataManager:
 
     def __load_cards(self,cardlist:list[dict]) -> None:
         #Takes in a cardlist in dictionary format, cleans the data types,
-        # and distributes the dataset into tables in the sqlite database.
+        # and loads the data into a selected database (default: sqlite)
         df_cards = pd.DataFrame(cardlist)
+        df_codes = df_cards.explode('card_sets')
+        #print(df_codes.head())
+        
 
         print("[dataman] Printing schema...")
-        for col, data in df_cards.items():
-            print("  Column: ", col, "-> ",data.dtype)
-        
-        print("[dataman] Constructing card set data...")
-        
+        df_cards.info()

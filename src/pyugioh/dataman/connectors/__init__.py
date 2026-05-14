@@ -1,0 +1,1 @@
+from pyugioh.dataman.connectors.sqlite import SQLite3Connector

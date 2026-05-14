@@ -4,6 +4,8 @@ RUN apt update && apt install tree
 
 COPY ./requirements.txt .
 
+ENV PYUGIOH_CONFIG=/pyugioh/vol/config/config.json
+
 RUN pip install -r requirements.txt
 
 COPY . ./pyugioh
