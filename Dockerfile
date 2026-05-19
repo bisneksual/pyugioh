@@ -1,5 +1,7 @@
 FROM python:3.12-slim
 
+LABEL Maintainer="Mykael Briley (bisneksual)"
+
 RUN apt update && apt install tree
 
 COPY ./requirements.txt .
