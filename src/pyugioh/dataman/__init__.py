@@ -20,7 +20,7 @@ class DataManager:
 
     def connect(self) -> None:
             #self.__conn = sqlite3.connect(self.config['dataman'].get("db_path"))
-            self.__connector = SQLite3Connector()
+            self.__connector = SQLite3Connector(config=self.config)
             self.__connector.connect()
     
     def ping(self) -> str:
@@ -33,11 +33,11 @@ class DataManager:
         #Queries API endpoint and saves full cardlist for ingestion into
         # database.
         print("[dataman] Pulling YGO card data...")
-        response = requests.get(self.config['dataman'].get('api_url'))
+        response = requests.get(self.config.get('api_url'))
         status = response.status_code
         cards = response.json()
         print("[dataman] Writing response to file...")
-        with open(f"{self.config['dataman'].get('data_path')}/ygo_cards.json","w") as fp:
+        with open(f"{self.config.get('data_path')}/ygo_cards.json","w") as fp:
             json.dump(cards,fp)
 
         #print("[dataman] Loading cardlist into database...")
@@ -61,6 +61,8 @@ class DataManager:
         df_codes = df_cards.explode('card_sets')
         self.__connector.create_table("cardlist")
         print(self.__connector.get_tables())
+        self.__connector.add_column("cardlist",{"name":"name","dtype":"text"})
+        print(self.__connector.get_schema("cardlist"))
         self.__connector.drop_table("cardlist")
         print(self.__connector.get_tables())
         
