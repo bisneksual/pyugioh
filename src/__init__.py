@@ -11,4 +11,4 @@ _dataman = DataManager(
         config = config.get("dataman")
 )
 _dataman.get_cards()
-print("Cards: ",_dataman.card_count)
+print(_dataman.list_cards())

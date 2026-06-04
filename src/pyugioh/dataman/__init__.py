@@ -3,6 +3,7 @@ import json
 from pyugioh.config import Config
 from pyugioh.dataman.connectors import SQLite3Connector
 import pandas as pd
+import numpy as np
 
 class DataManager:
     #DataManager (shortened to dataman)
@@ -58,14 +59,26 @@ class DataManager:
         #Takes in a cardlist in dictionary format, cleans the data types,
         # and loads the data into a selected database (default: sqlite)
         df_cards = pd.DataFrame(cardlist)
+        df_cards = df_cards.replace({np.nan:None})
+        df_schema = pd.DataFrame([
+            {
+                'column_name': col,
+                'non_nulls': df_cards[col].notnull().sum(),
+                'dtype': str(df_cards[col].dtype),
+            }
+            for col in df_cards.columns
+        ])
+        print(df_schema)
         df_codes = df_cards.explode('card_sets')
-        self.__connector.create_table("cardlist")
+        self.__connector.create_table("cardlist",cols=self.config.get('tables',{}).get('cardlist',{}).get('columns',[]))
         print(self.__connector.get_tables())
-        self.__connector.add_column("cardlist",{"name":"name","dtype":"text"})
         print(self.__connector.get_schema("cardlist"))
-        self.__connector.drop_table("cardlist")
-        print(self.__connector.get_tables())
-        
+        for row in df_cards[['id','name','type','humanReadableCardType','frameType','desc','race','archetype','ygoprodeck_url','atk','def','level']].to_dict('records')[:25]:
+            self.__connector.add_row('cardlist',row_data=dict((k,v) for k, v in row.items() if v is not None))
+        print(self.__connector.get_count('cardlist'))
 
         #print("[dataman] Printing schema...")
         #df_cards.info()
+
+    def list_cards(self,count:int = 6):
+        return self.__connector.get_head('cardlist',count)
