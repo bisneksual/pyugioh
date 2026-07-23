@@ -1,0 +1,5 @@
+services:
+  pygo-dev:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.dev

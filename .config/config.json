@@ -1,0 +1,38 @@
+{
+    "dataman": {
+        "api_url": "https://db.ygoprodeck.com/api/v7/cardinfo.php",
+        "data_path": "vol/data",
+        "db_path": "vol/data/pyugioh.db",
+        "sqlite3": {
+            "schema_labels": ["index","name","dtype","notnull","default","pk_status"]
+        },
+        "tables": {
+            "cardlist": {
+                "columns": [
+                    {"name": "id", "dtype": "integer", "constraints": ["primary key"]},
+                    {"name": "name", "dtype": "text", "constraints": ["not null"]},
+                    {"name": "type", "dtype": "text", "constraints": ["not null"]},
+                    {"name": "humanReadableCardType", "dtype": "text", "constraints": ["not null"]},
+                    {"name": "frameType", "dtype": "text", "constraints": ["not null"]},
+                    {"name": "desc", "dtype": "text", "constraints": ["not null"]},
+                    {"name": "race", "dtype": "text", "constraints": ["not null"]},
+                    {"name": "archetype", "dtype": "integer","default": 0},
+                    {"name": "ygoprodeck_url", "dtype": "text", "constraints": ["not null"]},
+                    {"name": "atk", "dtype": "integer","default": 0},
+                    {"name": "def", "dtype": "integer","default": 0},
+                    {"name": "level", "dtype": "integer","default": 0}
+                ]
+            },
+            "card_sets":{
+                "columns": [
+                    {"name":"id","dtype":"integer","fk":{"table":"cardlist","column":"id"}},
+                    {"name":"set_name","dtype":"text","contraints":["not null"]},
+                    {"name":"set_code","dtype":"text","contraints":["not null"]},
+                    {"name":"set_rarity","dtype":"text","contraints":["not null"]},
+                    {"name":"set_rarity_code","dtype":"text","contraints":["not null"]},
+                    {"name":"set_price","dtype":"real"}
+                ]
+            }
+        }
+    }
+}

@@ -1,0 +1,23 @@
+FROM alpine:latest
+
+LABEL Maintainer="Mykael Briley (bisneksual)"
+
+RUN apk add --no-cache \
+    tree \
+    python3 \
+    py3-pip \
+    python3-dev
+
+COPY ./requirements.txt .
+
+ENV PYUGIOH_CONFIG=/pyugioh/.config/config.json
+
+#VOLUME [ "/vol" ]
+
+RUN python3 -m pip install --break-system-packages -r requirements.txt
+
+COPY . /pyugioh
+
+EXPOSE 8080
+
+CMD ["/bin/sh","/pyugioh/init.sh"]
