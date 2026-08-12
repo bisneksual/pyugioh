@@ -1,0 +1,75 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "title": "YGODeck",
+    "description": "A Yu-Gi-Oh! deck to be saved by Pyugioh",
+    "properties": {
+        "deck":{
+            "type":"object",
+            "properties": {
+                "name":{
+                    "description": "The name assigned to the deck by the user",
+                    "type": "string"
+                },
+                "game":{
+                    "description": "The designator for the game that the deck is meant for",
+                    "type": "string"
+                },
+                "fantasy":{
+                    "description": "An indicator of whether the deck is a real or fantasy deck",
+                    "type": "boolean"
+                },
+                "coll-id":{
+                    "description": "A stored UUID that connects the real deck to a collection to be validated against.",
+                    "type": "string"
+                },
+                "comments":{
+                    "description": "A place to store certain notes or reminders regarding the deck",
+                    "type": "string"
+                },
+                "cards":{
+                    "description": "A list of the cards in the deck based on the different zones available",
+                    "type":"object",
+                    "properties": {
+                        "main":{
+                            "description": "A list of cards in the Main Deck zone",
+                            "type":"array",
+                            "items":{
+                                "anyOf": [
+                                    {
+                                        "type": "integer",
+                                        "exclusiveMinimum": 0
+                                    },
+                                    {
+                                        "type": "string"
+                                    },
+                                    {
+                                        "type": "object",
+                                        "additionalProperties": {
+                                            "type":"integer",
+                                            "minimum": 1
+                                        }
+                                    }
+                                ]
+                            }
+                        },
+                        "extra":{
+                            "description": "A list of cards in the Extra Deck zone",
+                            "type":"array"
+                        },
+                        "side":{
+                            "description": "A list of cards in the Side Deck zone",
+                            "type":"array"
+                        },
+                        "skill":{
+                            "description": "A list of Skill Cards to be used with the deck",
+                            "type":"array"
+                        }
+                    }
+                }
+            },
+            "required": ["game","name","fantasy","cards"],
+            "additionalProperties": false
+        }
+    },
+    "required": ["deck"]
+}

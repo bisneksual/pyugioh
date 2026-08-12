@@ -1,0 +1,22 @@
+{
+    "schema":{
+        "cardlist": {
+            "card_type": {"type": "text"},
+            "passcode": { "type": "int", "contraints": ["primary key"]},
+            "name": {"type": "text"},
+            "type": {"type": "text"},
+            "frametype": {"type": "text"},
+            "race": {"type": "text"},
+            "desc": {"type": "text"},
+            "p_scale":{"type": "int"},
+            "p_desc": {"type": "text"},
+            "l_value": {"type": "int"},
+            "atk": {"type": "int"},
+            "def": {"type": "int"},
+            "level": {"type": "int"},
+            "attriibute": {"type": "text"},
+            "archetype": {"type": "text"},
+            "ygoprodeck_url": {"type": "text"}
+        }
+    }
+}
