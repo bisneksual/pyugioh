@@ -1,0 +1,1 @@
+"""CARDlist MANager. The component in charge of cardlist maintenance and querying."""

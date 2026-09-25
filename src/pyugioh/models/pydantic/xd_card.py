@@ -1,4 +1,4 @@
-from src.pyugioh.models.base_card import BaseCard
+from .base_card import BaseCard
 from typing import Optional
 
 class ExtraDeckCard(BaseCard):

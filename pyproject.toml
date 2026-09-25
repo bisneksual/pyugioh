@@ -11,8 +11,13 @@ dependencies = [
     "pydantic>2.13.3",
     "pandas>3.0.1",
     "pytest>=9.1.1",
+    "requests>=2.34.2",
+    "SQLAlchemy>=2.0.52",
 ]
 
 [build-system]
 requires = ["uv_build>=0.11.11,<0.12.0"]
 build-backend = "uv_build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/models"]

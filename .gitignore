@@ -17,3 +17,5 @@ vol/
 .example
 __junk
 .vscode
+data/
+db/

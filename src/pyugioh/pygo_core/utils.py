@@ -3,7 +3,7 @@ Script that holds utility functions used by the Pyugioh module.
 """
 
 import re
-from src.pyugioh.pygo_core import constants
+from . import constants
 
 def sanitize_desc(card_desc:str) -> str:
     """

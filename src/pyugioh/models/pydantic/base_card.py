@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
-from src.pyugioh.pygo_core import utils
+from pyugioh.pygo_core import utils
 
 class BaseCard(BaseModel):
     id: int
@@ -9,6 +9,7 @@ class BaseCard(BaseModel):
     desc: str
     race: str
     set_code: Optional[str] = "N/A"
+    archetype: Optional[str] = "N/A"
 
     def __init__(self,**data):
         data['frame'] = data.pop("frameType","N/A")
